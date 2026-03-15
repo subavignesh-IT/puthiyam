@@ -1679,40 +1679,89 @@ const SellerDashboard: React.FC = () => {
                 {/* Images */}
                 <div className="space-y-4">
                   <Label>Product Images</Label>
-                  <div className="flex flex-wrap gap-4">
-                    {productImages.map((file, index) => (
-                      <div key={index} className="relative w-24 h-24 rounded-lg overflow-hidden border">
-                        <img
-                          src={URL.createObjectURL(file)}
-                          alt={`Preview ${index + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="icon"
-                          className="absolute top-1 right-1 w-6 h-6"
-                          onClick={() => removeImage(index)}
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                        {index === 0 && (
-                          <Badge className="absolute bottom-1 left-1 text-xs">Primary</Badge>
-                        )}
+                  
+                  {/* Existing images (when editing) */}
+                  {editingProduct && editingProduct.images.length > 0 && (
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-2">Current Images</p>
+                      <div className="flex flex-wrap gap-4">
+                        {editingProduct.images.map((img, index) => (
+                          <div key={img.id} className="relative w-24 h-24 rounded-lg overflow-hidden border">
+                            <img
+                              src={img.image_url}
+                              alt={`Existing ${index + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="icon"
+                              className="absolute top-1 right-1 w-6 h-6"
+                              onClick={() => deleteExistingImage(img.id, img.image_url, editingProduct.id)}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                            {img.is_primary && (
+                              <Badge className="absolute bottom-1 left-1 text-xs">Primary</Badge>
+                            )}
+                          </div>
+                        ))}
+                        <label className="w-24 h-24 rounded-lg border-2 border-dashed border-muted-foreground/50 flex flex-col items-center justify-center cursor-pointer hover:border-primary transition-colors">
+                          <Plus className="w-6 h-6 text-muted-foreground" />
+                          <span className="text-xs text-muted-foreground mt-1">Add</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            className="hidden"
+                            onChange={(e) => {
+                              if (e.target.files && e.target.files.length > 0) {
+                                addImageToExistingProduct(e.target.files, editingProduct.id);
+                              }
+                            }}
+                          />
+                        </label>
                       </div>
-                    ))}
-                    <label className="w-24 h-24 rounded-lg border-2 border-dashed border-muted-foreground/50 flex flex-col items-center justify-center cursor-pointer hover:border-primary transition-colors">
-                      <Upload className="w-6 h-6 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground mt-1">Upload</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        className="hidden"
-                        onChange={handleImageSelect}
-                      />
-                    </label>
-                  </div>
+                    </div>
+                  )}
+
+                  {/* New images (for new products or additional uploads) */}
+                  {!editingProduct && (
+                    <div className="flex flex-wrap gap-4">
+                      {productImages.map((file, index) => (
+                        <div key={index} className="relative w-24 h-24 rounded-lg overflow-hidden border">
+                          <img
+                            src={URL.createObjectURL(file)}
+                            alt={`Preview ${index + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute top-1 right-1 w-6 h-6"
+                            onClick={() => removeImage(index)}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                          {index === 0 && (
+                            <Badge className="absolute bottom-1 left-1 text-xs">Primary</Badge>
+                          )}
+                        </div>
+                      ))}
+                      <label className="w-24 h-24 rounded-lg border-2 border-dashed border-muted-foreground/50 flex flex-col items-center justify-center cursor-pointer hover:border-primary transition-colors">
+                        <Upload className="w-6 h-6 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground mt-1">Upload</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          className="hidden"
+                          onChange={handleImageSelect}
+                        />
+                      </label>
+                    </div>
+                  )}
                 </div>
 
                 <Button
