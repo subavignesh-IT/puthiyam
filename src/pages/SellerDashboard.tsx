@@ -407,8 +407,9 @@ const SellerDashboard: React.FC = () => {
         });
         
         // Download the image
+        const billNo = order.order_number || getOrderIdForDisplay(order.id);
         const link = document.createElement('a');
-        link.download = `PUTHIYAM_Bill_${order.id.slice(0, 8)}.png`;
+        link.download = `PUTHIYAM_Bill_${billNo}.png`;
         link.href = canvas.toDataURL('image/png');
         link.click();
 
