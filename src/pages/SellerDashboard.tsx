@@ -413,7 +413,8 @@ const SellerDashboard: React.FC = () => {
         link.click();
 
         // Open WhatsApp with a summary
-        const message = `🛒 *Order Bill from PUTHIYAM PRODUCTS*\n\n📋 Order: ${order.id.slice(0, 8).toUpperCase()}\n👤 Customer: ${order.customer_name}\n📞 Phone: ${order.customer_phone}\n💰 Total: ₹${order.total}\n${order.payment_status === 'paid' ? '✅ PAID' : '⏳ PENDING'}\n📦 Status: ${order.order_status.toUpperCase()}\n\n📎 Bill image attached`;
+        const billNo = order.order_number || getOrderIdForDisplay(order.id);
+        const message = `🛒 *Order Bill from PUTHIYAM PRODUCTS*\n\n📋 Bill No: ${billNo}\n👤 Customer: ${order.customer_name}\n📞 Phone: ${order.customer_phone}\n💰 Total: ₹${order.total}\n${order.payment_status === 'paid' ? '✅ PAID' : '⏳ PENDING'}\n📦 Status: ${order.order_status.toUpperCase()}\n\n📎 Bill image attached`;
         const encodedMessage = encodeURIComponent(message);
         window.open(`https://wa.me/919361284773?text=${encodedMessage}`, '_blank');
 
