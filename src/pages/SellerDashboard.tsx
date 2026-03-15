@@ -57,6 +57,7 @@ interface OrderItem {
 
 interface Order {
   id: string;
+  order_number: string | null;
   customer_name: string;
   customer_phone: string;
   customer_address: string | null;
