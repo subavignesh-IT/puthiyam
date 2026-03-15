@@ -1040,7 +1040,8 @@ const SellerDashboard: React.FC = () => {
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
-                        <TableRow>
+                          <TableRow>
+                          <TableHead>Bill No.</TableHead>
                           <TableHead>Date</TableHead>
                           <TableHead>Customer</TableHead>
                           <TableHead>Items</TableHead>
@@ -1053,6 +1054,9 @@ const SellerDashboard: React.FC = () => {
                       <TableBody>
                         {orders.map((order) => (
                           <TableRow key={order.id} className="hover:bg-muted/50 transition-colors">
+                            <TableCell className="font-mono font-bold text-primary">
+                              {order.order_number || getOrderIdForDisplay(order.id)}
+                            </TableCell>
                             <TableCell className="text-sm">
                               {formatDate(order.created_at)}
                             </TableCell>
