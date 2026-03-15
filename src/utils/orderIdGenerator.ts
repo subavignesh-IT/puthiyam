@@ -1,17 +1,18 @@
 // Order ID Format: MonthCode + DayOfWeekCode + Date + BillNumber
-// Example: BA0801 = February (B), Sunday (A), 08th date, 01st order of the day
+// Example: AC0103 = January (A), Wednesday (C), 01st date, 03rd order of the day
 
 const MONTH_CODES = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
-// A=Jan, B=Feb, C=Mar, D=Apr, E=May, F=Jun, G=Jul, H=Aug, I=Sep, J=Oct, K=Nov, L=Dec
+// A=Jan(1), B=Feb(2), C=Mar(3), ... L=Dec(12)
 
-const DAY_CODES = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
-// A=Sun, B=Mon, C=Tue, D=Wed, E=Thu, F=Fri, G=Sat
+const DAY_CODES = ['G', 'A', 'B', 'C', 'D', 'E', 'F'];
+// JS getDay(): 0=Sun→G, 1=Mon→A, 2=Tue→B, 3=Wed→C, 4=Thu→D, 5=Fri→E, 6=Sat→F
+// So: Monday=A, Tuesday=B, Wednesday=C, Thursday=D, Friday=E, Saturday=F, Sunday=G
 
 export const generateOrderId = (existingOrdersToday: number = 0): string => {
   const now = new Date();
   
   const monthCode = MONTH_CODES[now.getMonth()]; // 0-11 -> A-L
-  const dayOfWeekCode = DAY_CODES[now.getDay()]; // 0-6 -> A-G (0 = Sunday)
+  const dayOfWeekCode = DAY_CODES[now.getDay()]; // Mon=A, Tue=B, ... Sun=G
   const date = String(now.getDate()).padStart(2, '0'); // 01-31
   const billNumber = String(existingOrdersToday + 1).padStart(2, '0'); // 01, 02, ...
 
