@@ -291,9 +291,14 @@ const Orders: React.FC = () => {
               <Card key={order.id} className="shadow-soft animate-fade-in">
                 <CardHeader className="pb-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">{formatDate(order.created_at)}</span>
+                    <div className="flex items-center gap-3">
+                      <span className="font-mono font-bold text-primary text-lg">
+                        #{order.order_number || order.id.slice(0, 8).toUpperCase()}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">{formatDate(order.created_at)}</span>
+                      </div>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <Badge variant={order.payment_status === 'paid' ? 'default' : 'secondary'}>

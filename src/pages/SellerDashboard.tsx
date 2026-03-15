@@ -45,6 +45,7 @@ import { Package, Plus, Trash2, Upload, ShoppingCart, Edit, Tag, Percent, Settin
 import { DbProduct, DbProductVariant, DbProductImage } from '@/types/product';
 import SalesReportDashboard from '@/components/SalesReportDashboard';
 import OrderBillImage from '@/components/OrderBillImage';
+import { getOrderIdForDisplay } from '@/utils/orderIdGenerator';
 import html2canvas from 'html2canvas';
 
 interface OrderItem {
