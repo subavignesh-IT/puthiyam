@@ -45,6 +45,7 @@ import { Package, Plus, Trash2, Upload, ShoppingCart, Edit, Tag, Percent, Settin
 import { DbProduct, DbProductVariant, DbProductImage } from '@/types/product';
 import SalesReportDashboard from '@/components/SalesReportDashboard';
 import OrderBillImage from '@/components/OrderBillImage';
+import { getOrderIdForDisplay } from '@/utils/orderIdGenerator';
 import html2canvas from 'html2canvas';
 
 interface OrderItem {
@@ -57,6 +58,7 @@ interface OrderItem {
 
 interface Order {
   id: string;
+  order_number: string | null;
   customer_name: string;
   customer_phone: string;
   customer_address: string | null;
@@ -405,13 +407,14 @@ const SellerDashboard: React.FC = () => {
         });
         
         // Download the image
+        const billNo = order.order_number || getOrderIdForDisplay(order.id);
         const link = document.createElement('a');
-        link.download = `PUTHIYAM_Bill_${order.id.slice(0, 8)}.png`;
+        link.download = `PUTHIYAM_Bill_${billNo}.png`;
         link.href = canvas.toDataURL('image/png');
         link.click();
 
         // Open WhatsApp with a summary
-        const message = `🛒 *Order Bill from PUTHIYAM PRODUCTS*\n\n📋 Order: ${order.id.slice(0, 8).toUpperCase()}\n👤 Customer: ${order.customer_name}\n📞 Phone: ${order.customer_phone}\n💰 Total: ₹${order.total}\n${order.payment_status === 'paid' ? '✅ PAID' : '⏳ PENDING'}\n📦 Status: ${order.order_status.toUpperCase()}\n\n📎 Bill image attached`;
+        const message = `🛒 *Order Bill from PUTHIYAM PRODUCTS*\n\n📋 Bill No: ${billNo}\n👤 Customer: ${order.customer_name}\n📞 Phone: ${order.customer_phone}\n💰 Total: ₹${order.total}\n${order.payment_status === 'paid' ? '✅ PAID' : '⏳ PENDING'}\n📦 Status: ${order.order_status.toUpperCase()}\n\n📎 Bill image attached`;
         const encodedMessage = encodeURIComponent(message);
         window.open(`https://wa.me/919361284773?text=${encodedMessage}`, '_blank');
 
@@ -1039,7 +1042,8 @@ const SellerDashboard: React.FC = () => {
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
-                        <TableRow>
+                          <TableRow>
+                          <TableHead>Bill No.</TableHead>
                           <TableHead>Date</TableHead>
                           <TableHead>Customer</TableHead>
                           <TableHead>Items</TableHead>
@@ -1052,6 +1056,9 @@ const SellerDashboard: React.FC = () => {
                       <TableBody>
                         {orders.map((order) => (
                           <TableRow key={order.id} className="hover:bg-muted/50 transition-colors">
+                            <TableCell className="font-mono font-bold text-primary">
+                              {order.order_number || getOrderIdForDisplay(order.id)}
+                            </TableCell>
                             <TableCell className="text-sm">
                               {formatDate(order.created_at)}
                             </TableCell>
@@ -1154,7 +1161,7 @@ const SellerDashboard: React.FC = () => {
                               <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
                                 <OrderBillImage
                                   ref={(el) => { billRefs.current[order.id] = el; }}
-                                  orderId={order.id}
+                                  orderId={order.order_number || order.id}
                                   customerName={order.customer_name}
                                   customerPhone={order.customer_phone}
                                   customerAddress={order.customer_address}

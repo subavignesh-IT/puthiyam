@@ -94,9 +94,9 @@ const CheckoutForm: React.FC = () => {
         customer_address: deliveryType === 'shipping' ? formData.address : null,
         delivery_type: deliveryType,
         payment_method: paymentMethod,
-        // Online payment is 'paid', COD is 'pending' until delivered
         payment_status: paymentMethod === 'online' ? 'paid' : 'pending',
         order_status: 'pending',
+        order_number: orderId,
         items: items.map(item => ({
           id: item.id,
           name: item.name,
