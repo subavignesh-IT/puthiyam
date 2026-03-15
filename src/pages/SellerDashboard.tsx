@@ -551,6 +551,63 @@ const SellerDashboard: React.FC = () => {
     }
   };
 
+  const deleteExistingImage = async (imageId: string, imageUrl: string, productId: string) => {
+    try {
+      const path = imageUrl.split('/product-images/')[1];
+      if (path) {
+        await supabase.storage.from('product-images').remove([path]);
+      }
+      const { error } = await supabase.from('product_images').delete().eq('id', imageId);
+      if (error) throw error;
+
+      if (editingProduct) {
+        setEditingProduct({
+          ...editingProduct,
+          images: editingProduct.images.filter(img => img.id !== imageId),
+        });
+      }
+      setProducts(prev => prev.map(p =>
+        p.id === productId ? { ...p, images: p.images.filter(img => img.id !== imageId) } : p
+      ));
+      toast({ title: "Image Deleted" });
+    } catch (error) {
+      console.error('Error deleting image:', error);
+      toast({ title: "Error", description: "Failed to delete image", variant: "destructive" });
+    }
+  };
+
+  const addImageToExistingProduct = async (files: FileList, productId: string) => {
+    try {
+      setUploading(true);
+      const currentImages = editingProduct?.images || [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${productId}/${Date.now()}-${i}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage.from('product-images').upload(fileName, file);
+        if (uploadError) throw uploadError;
+        const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(fileName);
+        const { data: imgData, error: imgError } = await supabase.from('product_images').insert({
+          product_id: productId,
+          image_url: urlData.publicUrl,
+          is_primary: currentImages.length === 0 && i === 0,
+          display_order: currentImages.length + i,
+        }).select().single();
+        if (imgError) throw imgError;
+        if (editingProduct && imgData) {
+          setEditingProduct(prev => prev ? { ...prev, images: [...prev.images, imgData] } : prev);
+        }
+      }
+      toast({ title: "Images Added" });
+      fetchProducts();
+    } catch (error) {
+      console.error('Error adding images:', error);
+      toast({ title: "Error", description: "Failed to add images", variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const deleteProduct = async (productId: string) => {
     try {
       // Delete images from storage first
