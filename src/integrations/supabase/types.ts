@@ -41,6 +41,7 @@ export type Database = {
           delivery_type: string
           id: string
           items: Json
+          order_number: string | null
           order_status: string
           payment_method: string
           payment_status: string
@@ -57,6 +58,7 @@ export type Database = {
           delivery_type: string
           id?: string
           items: Json
+          order_number?: string | null
           order_status?: string
           payment_method: string
           payment_status: string
@@ -73,6 +75,7 @@ export type Database = {
           delivery_type?: string
           id?: string
           items?: Json
+          order_number?: string | null
           order_status?: string
           payment_method?: string
           payment_status?: string
