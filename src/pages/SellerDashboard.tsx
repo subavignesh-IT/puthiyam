@@ -1162,7 +1162,7 @@ const SellerDashboard: React.FC = () => {
                               <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
                                 <OrderBillImage
                                   ref={(el) => { billRefs.current[order.id] = el; }}
-                                  orderId={order.id}
+                                  orderId={order.order_number || order.id}
                                   customerName={order.customer_name}
                                   customerPhone={order.customer_phone}
                                   customerAddress={order.customer_address}
