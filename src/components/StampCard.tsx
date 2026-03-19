@@ -122,7 +122,7 @@ const StampCard: React.FC = () => {
 
             {/* Stamp circles */}
             <TooltipProvider delayDuration={200}>
-              <div className="flex items-center justify-between gap-1.5">
+              <div className="grid grid-cols-5 gap-3">
                 {Array.from({ length: 10 }, (_, i) => {
                   const filled = i < stamps;
                   const isNext = i === stamps && !isComplete;
@@ -133,7 +133,7 @@ const StampCard: React.FC = () => {
                           onMouseEnter={() => setHoveredStamp(i)}
                           onMouseLeave={() => setHoveredStamp(null)}
                           className={`
-                            w-8 h-8 rounded-full flex items-center justify-center border-2 
+                            w-12 h-12 rounded-full flex items-center justify-center border-2 mx-auto
                             transition-all duration-300 cursor-pointer
                             ${filled
                               ? 'bg-primary border-primary text-primary-foreground shadow-md hover:shadow-lg hover:scale-110'
@@ -148,9 +148,9 @@ const StampCard: React.FC = () => {
                           }}
                         >
                           {filled ? (
-                            <Check className={`w-4 h-4 transition-transform duration-200 ${hoveredStamp === i ? 'scale-125' : ''}`} />
+                            <Check className={`w-5 h-5 transition-transform duration-200 ${hoveredStamp === i ? 'scale-125' : ''}`} />
                           ) : (
-                            <span className="text-[10px] font-bold">{i + 1}</span>
+                            <span className="text-xs font-bold">{i + 1}</span>
                           )}
                         </div>
                       </TooltipTrigger>
