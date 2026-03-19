@@ -1688,7 +1688,7 @@ const SellerDashboard: React.FC = () => {
                   <Label>Product Images</Label>
                   
                   {/* Existing images (when editing) */}
-                  {editingProduct && editingProduct.images.length > 0 && (
+                  {editingProduct && (
                     <div>
                       <p className="text-sm text-muted-foreground mb-2">Current Images</p>
                       <div className="flex flex-wrap gap-4">
