@@ -148,9 +148,9 @@ const StampCard: React.FC = () => {
                           }}
                         >
                           {filled ? (
-                            <Check className={`w-4 h-4 transition-transform duration-200 ${hoveredStamp === i ? 'scale-125' : ''}`} />
+                            <Check className={`w-5 h-5 transition-transform duration-200 ${hoveredStamp === i ? 'scale-125' : ''}`} />
                           ) : (
-                            <span className="text-[10px] font-bold">{i + 1}</span>
+                            <span className="text-xs font-bold">{i + 1}</span>
                           )}
                         </div>
                       </TooltipTrigger>
