@@ -22,7 +22,11 @@ const Cart: React.FC = () => {
           <Link to="/"><Button variant="ghost" size="sm"><ArrowLeft className="w-4 h-4 mr-2" />Continue Shopping</Button></Link>
         </div>
 
-        <h1 className="font-serif text-3xl font-bold mb-8">Your Cart</h1>
+        <h1 className="font-serif text-3xl font-bold mb-6">Your Cart</h1>
+        
+        <div className="mb-8">
+          <StampCard />
+        </div>
 
         {items.length === 0 ? (
           <div className="text-center py-16 animate-fade-in">
