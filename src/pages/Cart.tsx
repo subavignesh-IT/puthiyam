@@ -6,6 +6,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import CartItem from '@/components/CartItem';
 import CheckoutForm from '@/components/CheckoutForm';
+import StampCard from '@/components/StampCard';
 import BottomNav from '@/components/BottomNav';
 import { Button } from '@/components/ui/button';
 
