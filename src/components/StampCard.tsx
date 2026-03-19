@@ -122,7 +122,7 @@ const StampCard: React.FC = () => {
 
             {/* Stamp circles */}
             <TooltipProvider delayDuration={200}>
-              <div className="flex items-center justify-between gap-1.5">
+              <div className="grid grid-cols-5 gap-3">
                 {Array.from({ length: 10 }, (_, i) => {
                   const filled = i < stamps;
                   const isNext = i === stamps && !isComplete;
