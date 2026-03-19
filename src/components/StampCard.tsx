@@ -133,7 +133,7 @@ const StampCard: React.FC = () => {
                           onMouseEnter={() => setHoveredStamp(i)}
                           onMouseLeave={() => setHoveredStamp(null)}
                           className={`
-                            w-8 h-8 rounded-full flex items-center justify-center border-2 
+                            w-12 h-12 rounded-full flex items-center justify-center border-2 mx-auto
                             transition-all duration-300 cursor-pointer
                             ${filled
                               ? 'bg-primary border-primary text-primary-foreground shadow-md hover:shadow-lg hover:scale-110'
