@@ -244,9 +244,6 @@ const CheckoutForm: React.FC = () => {
       link.click();
     }
 
-    // Share to seller's WhatsApp
-    shareToWhatsApp(true);
-
     // Show share dialog for customer
     setShowShareDialog(true);
 
