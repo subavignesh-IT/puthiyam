@@ -41,6 +41,7 @@ const OrderBillImage = forwardRef<HTMLDivElement, OrderBillImageProps>(({
   shippingCost,
   total,
   createdAt,
+  loyaltyInfo,
 }, ref) => {
   const displayOrderId = getOrderIdForDisplay(orderId);
 
