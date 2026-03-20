@@ -1184,6 +1184,7 @@ const SellerDashboard: React.FC = () => {
                                   shippingCost={order.shipping_cost}
                                   total={order.total}
                                   createdAt={order.created_at}
+                                  loyaltyInfo={userLoyaltyMap[order.user_id] ? { stamps: userLoyaltyMap[order.user_id] % 11 } : null}
                                 />
                               </div>
                             </TableCell>
