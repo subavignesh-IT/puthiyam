@@ -148,16 +148,34 @@ const CheckoutForm: React.FC = () => {
     }
   };
 
-  const shareToWhatsApp = (toSeller: boolean = true) => {
-    const phoneNumber = toSeller ? '919361284773' : '';
-    const message = `🛒 *Order from PUTHIYAM PRODUCTS*\n\n📋 Order ID: ${generatedOrderId}\n👤 Customer: ${formData.name}\n📞 Phone: ${formData.phone}\n💰 Total: ₹${grandTotal}\n${paymentMethod === 'online' ? '✅ PAID' : '⏳ COD - PENDING'}\n\n📎 Bill image downloaded - please share it!`;
-    const encodedMessage = encodeURIComponent(message);
-    
-    if (toSeller) {
-      window.open(`https://wa.me/${phoneNumber}?text=${encodedMessage}`, '_blank');
-    } else {
-      // For customer share, open WhatsApp with just the message (they choose recipient)
-      window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
+  const shareImageToWhatsApp = async (toSeller: boolean = false) => {
+    const imageUrl = billImageUrl || await generateBillImage();
+    if (!imageUrl) return;
+
+    try {
+      // Convert data URL to blob
+      const res = await fetch(imageUrl);
+      const blob = await res.blob();
+      const file = new File([blob], `PUTHIYAM_Bill_${generatedOrderId || Date.now()}.png`, { type: 'image/png' });
+
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: `PUTHIYAM Bill - ${generatedOrderId}`,
+        });
+      } else {
+        // Fallback: download the image so user can manually share
+        const link = document.createElement('a');
+        link.download = file.name;
+        link.href = imageUrl;
+        link.click();
+        toast({
+          title: "Bill Downloaded",
+          description: "Share the downloaded image on WhatsApp manually.",
+        });
+      }
+    } catch (err) {
+      console.error('Share failed:', err);
     }
   };
 
@@ -186,9 +204,6 @@ const CheckoutForm: React.FC = () => {
       link.href = imageUrl;
       link.click();
     }
-
-    // Share to seller's WhatsApp
-    shareToWhatsApp(true);
 
     // Show share dialog for customer
     setShowShareDialog(true);
@@ -228,9 +243,6 @@ const CheckoutForm: React.FC = () => {
       link.href = imageUrl;
       link.click();
     }
-
-    // Share to seller's WhatsApp
-    shareToWhatsApp(true);
 
     // Show share dialog for customer
     setShowShareDialog(true);
@@ -314,7 +326,7 @@ const CheckoutForm: React.FC = () => {
                 <Download className="w-4 h-4" />
                 Download Bill Again
               </Button>
-              <Button onClick={() => shareToWhatsApp(false)} variant="outline" className="flex items-center gap-2">
+              <Button onClick={() => shareImageToWhatsApp()} variant="outline" className="flex items-center gap-2">
                 <MessageCircle className="w-4 h-4" />
                 Share Bill
               </Button>
@@ -342,7 +354,7 @@ const CheckoutForm: React.FC = () => {
                 <Download className="w-4 h-4 mr-2" />
                 Just Download
               </Button>
-              <AlertDialogAction onClick={() => { shareToWhatsApp(false); setShowShareDialog(false); }} className="gradient-hero w-full sm:w-auto">
+              <AlertDialogAction onClick={() => { shareImageToWhatsApp(); setShowShareDialog(false); }} className="gradient-hero w-full sm:w-auto">
                 <MessageCircle className="w-4 h-4 mr-2" />
                 Share on WhatsApp
               </AlertDialogAction>
