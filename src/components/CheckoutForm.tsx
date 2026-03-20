@@ -326,7 +326,7 @@ const CheckoutForm: React.FC = () => {
                 <Download className="w-4 h-4" />
                 Download Bill Again
               </Button>
-              <Button onClick={() => shareToWhatsApp(false)} variant="outline" className="flex items-center gap-2">
+              <Button onClick={() => shareImageToWhatsApp()} variant="outline" className="flex items-center gap-2">
                 <MessageCircle className="w-4 h-4" />
                 Share Bill
               </Button>
