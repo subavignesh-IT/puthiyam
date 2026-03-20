@@ -354,7 +354,7 @@ const CheckoutForm: React.FC = () => {
                 <Download className="w-4 h-4 mr-2" />
                 Just Download
               </Button>
-              <AlertDialogAction onClick={() => { shareToWhatsApp(false); setShowShareDialog(false); }} className="gradient-hero w-full sm:w-auto">
+              <AlertDialogAction onClick={() => { shareImageToWhatsApp(); setShowShareDialog(false); }} className="gradient-hero w-full sm:w-auto">
                 <MessageCircle className="w-4 h-4 mr-2" />
                 Share on WhatsApp
               </AlertDialogAction>
