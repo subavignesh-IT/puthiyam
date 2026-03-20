@@ -24,6 +24,7 @@ interface OrderBillImageProps {
   shippingCost: number;
   total: number;
   createdAt: string;
+  loyaltyInfo?: { stamps: number; couponCode?: string } | null;
 }
 
 const OrderBillImage = forwardRef<HTMLDivElement, OrderBillImageProps>(({
@@ -40,6 +41,7 @@ const OrderBillImage = forwardRef<HTMLDivElement, OrderBillImageProps>(({
   shippingCost,
   total,
   createdAt,
+  loyaltyInfo,
 }, ref) => {
   const displayOrderId = getOrderIdForDisplay(orderId);
 
@@ -188,6 +190,32 @@ const OrderBillImage = forwardRef<HTMLDivElement, OrderBillImageProps>(({
           via {paymentMethod === 'cod' ? 'Cash on Delivery' : 'Online Payment (UPI)'}
         </span>
       </div>
+
+      {/* Loyalty Info */}
+      {loyaltyInfo && (
+        <div style={{
+          marginTop: '16px',
+          padding: '12px',
+          backgroundColor: loyaltyInfo.stamps >= 10 ? '#fef3c7' : '#f0f9ff',
+          borderRadius: '8px',
+          border: loyaltyInfo.stamps >= 10 ? '1px solid #f59e0b' : '1px solid #bae6fd',
+          fontSize: '12px',
+        }}>
+          <p style={{ margin: '0 0 4px 0', fontWeight: 'bold', color: '#333' }}>
+            🎯 Loyalty Progress: {Math.min(loyaltyInfo.stamps, 10)}/10 stamps
+          </p>
+          {loyaltyInfo.stamps >= 10 && loyaltyInfo.couponCode && (
+            <p style={{ margin: '0', color: '#92400e', fontWeight: 'bold' }}>
+              🎉 Loyalty Complete! Coupon: <span style={{ fontFamily: 'monospace', letterSpacing: '1px' }}>{loyaltyInfo.couponCode}</span>
+            </p>
+          )}
+          {loyaltyInfo.stamps < 10 && (
+            <p style={{ margin: '0', color: '#666' }}>
+              {10 - loyaltyInfo.stamps} more order{10 - loyaltyInfo.stamps !== 1 ? 's' : ''} (₹200+) to unlock a special offer!
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Footer */}
       <div style={{

@@ -137,6 +137,7 @@ const SellerDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('orders');
   const [editingProduct, setEditingProduct] = useState<ProductWithDetails | null>(null);
   const billRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
+  const [userLoyaltyMap, setUserLoyaltyMap] = useState<Record<string, number>>({});
 
   // Product form state
   const [productName, setProductName] = useState('');
@@ -223,6 +224,15 @@ const SellerDashboard: React.FC = () => {
       }));
 
       setOrders(parsedOrders);
+
+      // Compute loyalty stamps per user (only orders with total >= 200)
+      const loyaltyMap: Record<string, number> = {};
+      (data || []).forEach(order => {
+        if (order.total >= 200) {
+          loyaltyMap[order.user_id] = (loyaltyMap[order.user_id] || 0) + 1;
+        }
+      });
+      setUserLoyaltyMap(loyaltyMap);
     } catch (error) {
       console.error('Error fetching orders:', error);
     }
@@ -1174,6 +1184,7 @@ const SellerDashboard: React.FC = () => {
                                   shippingCost={order.shipping_cost}
                                   total={order.total}
                                   createdAt={order.created_at}
+                                  loyaltyInfo={userLoyaltyMap[order.user_id] ? { stamps: userLoyaltyMap[order.user_id] % 11 } : null}
                                 />
                               </div>
                             </TableCell>
