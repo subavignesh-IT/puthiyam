@@ -223,6 +223,15 @@ const SellerDashboard: React.FC = () => {
       }));
 
       setOrders(parsedOrders);
+
+      // Compute loyalty stamps per user (only orders with total >= 200)
+      const loyaltyMap: Record<string, number> = {};
+      (data || []).forEach(order => {
+        if (order.total >= 200) {
+          loyaltyMap[order.user_id] = (loyaltyMap[order.user_id] || 0) + 1;
+        }
+      });
+      setUserLoyaltyMap(loyaltyMap);
     } catch (error) {
       console.error('Error fetching orders:', error);
     }
