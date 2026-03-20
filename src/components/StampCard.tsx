@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Check, Gift, PartyPopper, Sparkles, Star, Trophy } from 'lucide-react';
+import { Check, Gift, PartyPopper, Sparkles, Star, Trophy, Ticket } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Dialog,
   DialogContent,
@@ -17,6 +18,14 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
+const generateCouponCode = (phone: string, email: string): string => {
+  const phonePart = (phone || '0000').replace(/\D/g, '').slice(0, 4).padEnd(4, '0');
+  const emailPart = (email || 'user').replace(/@.*/, '').slice(0, 4).toUpperCase().padEnd(4, 'X');
+  const now = new Date();
+  const datePart = `${String(now.getDate()).padStart(2, '0')}${String(now.getMonth() + 1).padStart(2, '0')}`;
+  return `${phonePart}${emailPart}${datePart}`;
+};
+
 const StampCard: React.FC = () => {
   const { user } = useAuth();
   const [orderCount, setOrderCount] = useState(0);
@@ -24,26 +33,44 @@ const StampCard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [flipped, setFlipped] = useState(false);
   const [hoveredStamp, setHoveredStamp] = useState<number | null>(null);
+  const [couponCode, setCouponCode] = useState('');
+  const [couponInput, setCouponInput] = useState('');
+  const [couponApplied, setCouponApplied] = useState(false);
+  const [userPhone, setUserPhone] = useState('');
 
   useEffect(() => {
     if (user) {
       fetchOrderCount();
+      fetchUserPhone();
     } else {
       setLoading(false);
     }
   }, [user]);
 
+  const fetchUserPhone = async () => {
+    const { data } = await supabase
+      .from('profiles')
+      .select('phone')
+      .eq('user_id', user!.id)
+      .single();
+    if (data?.phone) setUserPhone(data.phone);
+  };
+
   const fetchOrderCount = async () => {
     try {
+      // Only count orders with total >= 200
       const { count, error } = await supabase
         .from('orders')
         .select('*', { count: 'exact', head: true })
-        .eq('user_id', user!.id);
+        .eq('user_id', user!.id)
+        .gte('total', 200);
 
       if (!error && count !== null) {
         const stamps = count % 11;
         setOrderCount(stamps);
         if (stamps === 10) {
+          const code = generateCouponCode(userPhone || '', user!.email || '');
+          setCouponCode(code);
           setShowCelebration(true);
         }
       }
@@ -51,6 +78,19 @@ const StampCard: React.FC = () => {
       console.error('Error fetching order count:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Regenerate coupon when phone is loaded
+  useEffect(() => {
+    if (orderCount >= 10 && user) {
+      setCouponCode(generateCouponCode(userPhone, user.email || ''));
+    }
+  }, [userPhone, orderCount, user]);
+
+  const handleCouponApply = () => {
+    if (couponInput.trim().toUpperCase() === couponCode.toUpperCase() && couponCode) {
+      setCouponApplied(true);
     }
   };
 
@@ -114,13 +154,13 @@ const StampCard: React.FC = () => {
               />
             </div>
 
-            <p className="text-xs text-muted-foreground mb-4 transition-all duration-300">
+            <p className="text-xs text-muted-foreground mb-2">
               {isComplete
                 ? '🎉 You earned a special offer on your next order!'
-                : `Complete ${10 - stamps} more order${10 - stamps !== 1 ? 's' : ''} to unlock a special offer!`}
+                : `Complete ${10 - stamps} more order${10 - stamps !== 1 ? 's' : ''} (₹200+) to unlock a special offer!`}
             </p>
 
-            {/* Stamp circles */}
+            {/* Stamp circles - 5 columns x 2 rows */}
             <TooltipProvider delayDuration={200}>
               <div className="grid grid-cols-5 gap-3">
                 {Array.from({ length: 10 }, (_, i) => {
@@ -143,9 +183,7 @@ const StampCard: React.FC = () => {
                             }
                             ${hoveredStamp === i ? 'ring-2 ring-primary/30 ring-offset-1' : ''}
                           `}
-                          style={{
-                            animationDelay: filled ? `${i * 100}ms` : '0ms',
-                          }}
+                          style={{ animationDelay: filled ? `${i * 100}ms` : '0ms' }}
                         >
                           {filled ? (
                             <Check className={`w-5 h-5 transition-transform duration-200 ${hoveredStamp === i ? 'scale-125' : ''}`} />
@@ -163,16 +201,48 @@ const StampCard: React.FC = () => {
               </div>
             </TooltipProvider>
 
-            {/* Completed banner */}
+            {/* Coupon code section */}
             {isComplete && (
-              <div className="mt-4 bg-primary/10 border border-primary/30 rounded-xl p-3 text-center animate-scale-in group/banner hover:bg-primary/15 transition-all duration-300 cursor-pointer">
+              <div className="mt-4 bg-primary/10 border border-primary/30 rounded-xl p-3 text-center animate-scale-in group/banner hover:bg-primary/15 transition-all duration-300">
                 <p className="text-sm font-semibold text-primary flex items-center justify-center gap-1.5">
                   <Trophy className="w-4 h-4 transition-transform duration-300 group-hover/banner:scale-125 group-hover/banner:rotate-12" />
                   Special Offer Unlocked!
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">Apply it on your 11th order</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Your coupon: <span className="font-mono font-bold text-primary">{couponCode}</span>
+                </p>
+                <p className="text-[10px] text-muted-foreground mt-1">Apply it on your 11th order</p>
               </div>
             )}
+
+            {/* Optional coupon input */}
+            <div className="mt-3" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center gap-2">
+                <Ticket className="w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Enter coupon code (optional)"
+                  value={couponInput}
+                  onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                  className="h-8 text-xs font-mono"
+                  onClick={(e) => e.stopPropagation()}
+                />
+                <Button
+                  size="sm"
+                  variant={couponApplied ? 'default' : 'outline'}
+                  className="h-8 text-xs whitespace-nowrap"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleCouponApply();
+                  }}
+                  disabled={couponApplied || !couponInput.trim()}
+                >
+                  {couponApplied ? '✅ Applied' : 'Apply'}
+                </Button>
+              </div>
+              {couponApplied && (
+                <p className="text-[10px] text-green-600 mt-1 ml-6">Coupon applied! Special offer active.</p>
+              )}
+            </div>
 
             <p className="text-[10px] text-muted-foreground/50 text-center mt-3 transition-opacity duration-300 hover:opacity-100 opacity-60">
               Tap card to see rewards info →
@@ -203,9 +273,10 @@ const StampCard: React.FC = () => {
             </div>
             <div className="space-y-3 text-sm">
               {[
-                { emoji: '🛒', text: 'Place an order to earn a stamp' },
+                { emoji: '🛒', text: 'Place an order of ₹200 or more to earn a stamp' },
                 { emoji: '🎯', text: 'Collect 10 stamps to complete the card' },
-                { emoji: '🎁', text: 'Get a special offer on your 11th order!' },
+                { emoji: '🎟️', text: 'Get a unique coupon code on completion!' },
+                { emoji: '🎁', text: 'Apply coupon for a special offer on your 11th order!' },
                 { emoji: '🔄', text: 'Card resets — earn rewards again!' },
               ].map((item, idx) => (
                 <div
@@ -233,9 +304,15 @@ const StampCard: React.FC = () => {
             </div>
             <DialogTitle className="font-serif text-2xl">🎉 Congratulations!</DialogTitle>
             <DialogDescription className="text-base mt-2">
-              You've completed 10 orders! You've unlocked a <strong className="text-primary">special offer</strong> on your next order. Thank you for being a loyal customer!
+              You've completed 10 qualifying orders! Your coupon code is:
             </DialogDescription>
           </DialogHeader>
+          <div className="bg-muted rounded-lg p-3 my-2">
+            <p className="font-mono text-xl font-bold text-primary tracking-wider">{couponCode}</p>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Enter this code on your next order for a <strong className="text-primary">special offer</strong>!
+          </p>
           <div className="text-4xl animate-fade-in mt-2 flex justify-center gap-2">
             <span className="inline-block animate-bounce" style={{ animationDelay: '0ms' }}>🎊</span>
             <span className="inline-block animate-bounce" style={{ animationDelay: '150ms' }}>🥳</span>
