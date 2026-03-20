@@ -24,6 +24,7 @@ interface OrderBillImageProps {
   shippingCost: number;
   total: number;
   createdAt: string;
+  loyaltyInfo?: { stamps: number; couponCode?: string } | null;
 }
 
 const OrderBillImage = forwardRef<HTMLDivElement, OrderBillImageProps>(({
