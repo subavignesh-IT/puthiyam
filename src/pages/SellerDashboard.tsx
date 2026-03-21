@@ -224,6 +224,7 @@ const SellerDashboard: React.FC = () => {
     }
   };
 
+  const fetchOrders = async () => {
     try {
       const { data, error } = await supabase
         .from('orders')
