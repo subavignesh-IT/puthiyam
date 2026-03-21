@@ -41,7 +41,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Package, Plus, Trash2, Upload, ShoppingCart, Edit, Tag, Percent, Settings, Clock, X, Share2, BarChart3, Bell, Download, DollarSign } from 'lucide-react';
+import { Package, Plus, Trash2, Upload, ShoppingCart, Edit, Tag, Percent, Settings, Clock, X, Share2, BarChart3, Bell, Download, DollarSign, Users } from 'lucide-react';
 import { DbProduct, DbProductVariant, DbProductImage } from '@/types/product';
 import SalesReportDashboard from '@/components/SalesReportDashboard';
 import OrderBillImage from '@/components/OrderBillImage';
@@ -133,6 +133,7 @@ const SellerDashboard: React.FC = () => {
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [packingTypes, setPackingTypes] = useState<{ id: string; name: string }[]>([]);
   const [requestedProducts, setRequestedProducts] = useState<RequestedProduct[]>([]);
+  const [customers, setCustomers] = useState<{ user_id: string; full_name: string | null; phone: string | null; address: string | null; created_at: string; email?: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('orders');
   const [editingProduct, setEditingProduct] = useState<ProductWithDetails | null>(null);
@@ -187,6 +188,7 @@ const SellerDashboard: React.FC = () => {
       fetchCategories(),
       fetchPackingTypes(),
       fetchRequestedProducts(),
+      fetchCustomers(),
     ]);
     setLoading(false);
   };
@@ -205,6 +207,20 @@ const SellerDashboard: React.FC = () => {
       setRequestedProducts(data || []);
     } catch (error) {
       console.error('Error fetching requested products:', error);
+    }
+  };
+
+  const fetchCustomers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, phone, address, created_at')
+        .order('created_at', { ascending: false });
+      if (!error && data) {
+        setCustomers(data);
+      }
+    } catch (err) {
+      console.error('Error fetching customers:', err);
     }
   };
 
@@ -1004,7 +1020,7 @@ const SellerDashboard: React.FC = () => {
         </section>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="orders" className="flex items-center gap-2">
               <ShoppingCart className="w-4 h-4" />
               <span className="hidden sm:inline">Orders</span>
@@ -1017,6 +1033,10 @@ const SellerDashboard: React.FC = () => {
                   {requestedProducts.length}
                 </span>
               )}
+            </TabsTrigger>
+            <TabsTrigger value="customers" className="flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              <span className="hidden sm:inline">Customers</span>
             </TabsTrigger>
             <TabsTrigger value="products" className="flex items-center gap-2">
               <Package className="w-4 h-4" />
@@ -1798,6 +1818,59 @@ const SellerDashboard: React.FC = () => {
           {/* Sales Reports Tab */}
           <TabsContent value="reports" className="space-y-4">
             <SalesReportDashboard />
+          </TabsContent>
+
+          {/* Customers Tab */}
+          <TabsContent value="customers" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="w-5 h-5" />
+                  All Customers ({customers.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {customers.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-8">No customers yet</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>#</TableHead>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Phone</TableHead>
+                          <TableHead>Address</TableHead>
+                          <TableHead>Joined</TableHead>
+                          <TableHead>Orders</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {customers.map((customer, idx) => {
+                          const customerOrders = orders.filter(o => o.user_id === customer.user_id);
+                          const totalSpent = customerOrders.reduce((sum, o) => sum + o.total, 0);
+                          return (
+                            <TableRow key={customer.user_id}>
+                              <TableCell className="font-medium">{idx + 1}</TableCell>
+                              <TableCell>{customer.full_name || 'N/A'}</TableCell>
+                              <TableCell>{customer.phone || 'N/A'}</TableCell>
+                              <TableCell className="max-w-[200px] truncate">{customer.address || 'N/A'}</TableCell>
+                              <TableCell>{new Date(customer.created_at).toLocaleDateString()}</TableCell>
+                              <TableCell>
+                                <div className="text-sm">
+                                  <span className="font-medium">{customerOrders.length}</span> orders
+                                  <span className="text-muted-foreground ml-2">₹{totalSpent.toFixed(0)}</span>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Settings Tab */}
