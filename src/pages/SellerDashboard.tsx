@@ -1112,6 +1112,12 @@ const SellerDashboard: React.FC = () => {
                                     {order.customer_address}
                                   </p>
                                 )}
+                                {/* Coupon code area */}
+                                {userLoyaltyMap[order.user_id] && userLoyaltyMap[order.user_id] % 11 >= 10 && (
+                                  <Badge variant="outline" className="mt-1 text-[10px] border-primary/30 text-primary">
+                                    🎟️ Loyalty Coupon Earned
+                                  </Badge>
+                                )}
                               </div>
                             </TableCell>
                             <TableCell>
