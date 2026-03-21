@@ -1860,12 +1860,14 @@ const SellerDashboard: React.FC = () => {
                           <TableHead>Address</TableHead>
                           <TableHead>Joined</TableHead>
                           <TableHead>Orders</TableHead>
+                          <TableHead>Loyalty</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {customers.map((customer, idx) => {
                           const customerOrders = orders.filter(o => o.user_id === customer.user_id);
                           const totalSpent = customerOrders.reduce((sum, o) => sum + o.total, 0);
+                          const loyaltyEnabled = (customer as any).loyalty_enabled !== false;
                           return (
                             <TableRow key={customer.user_id}>
                               <TableCell className="font-medium">{idx + 1}</TableCell>
@@ -1878,6 +1880,26 @@ const SellerDashboard: React.FC = () => {
                                   <span className="font-medium">{customerOrders.length}</span> orders
                                   <span className="text-muted-foreground ml-2">₹{totalSpent.toFixed(0)}</span>
                                 </div>
+                              </TableCell>
+                              <TableCell>
+                                <Switch
+                                  checked={loyaltyEnabled}
+                                  onCheckedChange={async (checked) => {
+                                    const { error } = await supabase
+                                      .from('profiles')
+                                      .update({ loyalty_enabled: checked } as any)
+                                      .eq('user_id', customer.user_id);
+                                    if (!error) {
+                                      setCustomers(prev => prev.map(c =>
+                                        c.user_id === customer.user_id ? { ...c, loyalty_enabled: checked } as any : c
+                                      ));
+                                      toast({
+                                        title: checked ? 'Loyalty Enabled' : 'Loyalty Disabled',
+                                        description: `Loyalty card ${checked ? 'enabled' : 'disabled'} for ${customer.full_name || 'customer'}`,
+                                      });
+                                    }
+                                  }}
+                                />
                               </TableCell>
                             </TableRow>
                           );
