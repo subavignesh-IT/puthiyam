@@ -49,13 +49,14 @@ const StampCard: React.FC = () => {
     }
   }, [user]);
 
-  const fetchUserPhone = async () => {
+  const fetchUserProfile = async () => {
     const { data } = await supabase
       .from('profiles')
-      .select('phone')
+      .select('phone, loyalty_enabled')
       .eq('user_id', user!.id)
       .single();
     if (data?.phone) setUserPhone(data.phone);
+    if (data && (data as any).loyalty_enabled === false) setLoyaltyEnabled(false);
   };
 
   const fetchOrderCount = async () => {
