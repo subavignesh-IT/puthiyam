@@ -1819,6 +1819,59 @@ const SellerDashboard: React.FC = () => {
             <SalesReportDashboard />
           </TabsContent>
 
+          {/* Customers Tab */}
+          <TabsContent value="customers" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="w-5 h-5" />
+                  All Customers ({customers.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {customers.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-8">No customers yet</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>#</TableHead>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Phone</TableHead>
+                          <TableHead>Address</TableHead>
+                          <TableHead>Joined</TableHead>
+                          <TableHead>Orders</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {customers.map((customer, idx) => {
+                          const customerOrders = orders.filter(o => o.user_id === customer.user_id);
+                          const totalSpent = customerOrders.reduce((sum, o) => sum + o.total, 0);
+                          return (
+                            <TableRow key={customer.user_id}>
+                              <TableCell className="font-medium">{idx + 1}</TableCell>
+                              <TableCell>{customer.full_name || 'N/A'}</TableCell>
+                              <TableCell>{customer.phone || 'N/A'}</TableCell>
+                              <TableCell className="max-w-[200px] truncate">{customer.address || 'N/A'}</TableCell>
+                              <TableCell>{new Date(customer.created_at).toLocaleDateString()}</TableCell>
+                              <TableCell>
+                                <div className="text-sm">
+                                  <span className="font-medium">{customerOrders.length}</span> orders
+                                  <span className="text-muted-foreground ml-2">₹{totalSpent.toFixed(0)}</span>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* Settings Tab */}
           <TabsContent value="settings" className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
