@@ -214,7 +214,7 @@ const SellerDashboard: React.FC = () => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('user_id, full_name, phone, address, created_at')
+        .select('user_id, full_name, phone, address, created_at, loyalty_enabled')
         .order('created_at', { ascending: false });
       if (!error && data) {
         setCustomers(data);
@@ -432,19 +432,30 @@ const SellerDashboard: React.FC = () => {
           scale: 2,
         });
         
-        // Download the image
         const billNo = order.order_number || getOrderIdForDisplay(order.id);
-        const link = document.createElement('a');
-        link.download = `PUTHIYAM_Bill_${billNo}.png`;
-        link.href = canvas.toDataURL('image/png');
-        link.click();
+        
+        // Convert canvas to blob for image sharing
+        const blob = await new Promise<Blob>((resolve) => {
+          canvas.toBlob((b) => resolve(b!), 'image/png');
+        });
+        const file = new File([blob], `PUTHIYAM_Bill_${billNo}.png`, { type: 'image/png' });
 
-        // Open WhatsApp with a summary
-        const message = `🛒 *Order Bill from PUTHIYAM PRODUCTS*\n\n📋 Bill No: ${billNo}\n👤 Customer: ${order.customer_name}\n📞 Phone: ${order.customer_phone}\n💰 Total: ₹${order.total}\n${order.payment_status === 'paid' ? '✅ PAID' : '⏳ PENDING'}\n📦 Status: ${order.order_status.toUpperCase()}\n\n📎 Bill image attached`;
-        const encodedMessage = encodeURIComponent(message);
-        window.open(`https://wa.me/919361284773?text=${encodedMessage}`, '_blank');
+        // Try Web Share API for image-only sharing
+        if (navigator.share && navigator.canShare?.({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title: `PUTHIYAM Bill - ${billNo}`,
+          });
+        } else {
+          // Fallback: download the image
+          const link = document.createElement('a');
+          link.download = `PUTHIYAM_Bill_${billNo}.png`;
+          link.href = canvas.toDataURL('image/png');
+          link.click();
+          toast({ title: "Bill Downloaded", description: "Share the downloaded bill image on WhatsApp manually." });
+        }
 
-        toast({ title: "Bill Generated", description: "Bill image downloaded and WhatsApp opened" });
+        toast({ title: "Bill Generated", description: "Bill image ready for sharing" });
       } catch (error) {
         console.error('Error generating bill:', error);
         toast({ title: "Error", description: "Failed to generate bill image", variant: "destructive" });
@@ -1100,6 +1111,12 @@ const SellerDashboard: React.FC = () => {
                                   <p className="text-xs text-muted-foreground truncate max-w-[150px]">
                                     {order.customer_address}
                                   </p>
+                                )}
+                                {/* Coupon code area */}
+                                {userLoyaltyMap[order.user_id] && userLoyaltyMap[order.user_id] % 11 >= 10 && (
+                                  <Badge variant="outline" className="mt-1 text-[10px] border-primary/30 text-primary">
+                                    🎟️ Loyalty Coupon Earned
+                                  </Badge>
                                 )}
                               </div>
                             </TableCell>
@@ -1843,12 +1860,14 @@ const SellerDashboard: React.FC = () => {
                           <TableHead>Address</TableHead>
                           <TableHead>Joined</TableHead>
                           <TableHead>Orders</TableHead>
+                          <TableHead>Loyalty</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {customers.map((customer, idx) => {
                           const customerOrders = orders.filter(o => o.user_id === customer.user_id);
                           const totalSpent = customerOrders.reduce((sum, o) => sum + o.total, 0);
+                          const loyaltyEnabled = (customer as any).loyalty_enabled !== false;
                           return (
                             <TableRow key={customer.user_id}>
                               <TableCell className="font-medium">{idx + 1}</TableCell>
@@ -1861,6 +1880,26 @@ const SellerDashboard: React.FC = () => {
                                   <span className="font-medium">{customerOrders.length}</span> orders
                                   <span className="text-muted-foreground ml-2">₹{totalSpent.toFixed(0)}</span>
                                 </div>
+                              </TableCell>
+                              <TableCell>
+                                <Switch
+                                  checked={loyaltyEnabled}
+                                  onCheckedChange={async (checked) => {
+                                    const { error } = await supabase
+                                      .from('profiles')
+                                      .update({ loyalty_enabled: checked } as any)
+                                      .eq('user_id', customer.user_id);
+                                    if (!error) {
+                                      setCustomers(prev => prev.map(c =>
+                                        c.user_id === customer.user_id ? { ...c, loyalty_enabled: checked } as any : c
+                                      ));
+                                      toast({
+                                        title: checked ? 'Loyalty Enabled' : 'Loyalty Disabled',
+                                        description: `Loyalty card ${checked ? 'enabled' : 'disabled'} for ${customer.full_name || 'customer'}`,
+                                      });
+                                    }
+                                  }}
+                                />
                               </TableCell>
                             </TableRow>
                           );
