@@ -38,11 +38,12 @@ const StampCard: React.FC = () => {
   const [couponInput, setCouponInput] = useState('');
   const [couponApplied, setCouponApplied] = useState(false);
   const [userPhone, setUserPhone] = useState('');
+  const [loyaltyEnabled, setLoyaltyEnabled] = useState(true);
 
   useEffect(() => {
     if (user) {
       fetchOrderCount();
-      fetchUserPhone();
+      fetchUserProfile();
     } else {
       setLoading(false);
     }
