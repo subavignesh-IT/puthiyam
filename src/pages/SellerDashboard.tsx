@@ -210,7 +210,20 @@ const SellerDashboard: React.FC = () => {
     }
   };
 
-  const fetchOrders = async () => {
+  const fetchCustomers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, phone, address, created_at')
+        .order('created_at', { ascending: false });
+      if (!error && data) {
+        setCustomers(data);
+      }
+    } catch (err) {
+      console.error('Error fetching customers:', err);
+    }
+  };
+
     try {
       const { data, error } = await supabase
         .from('orders')
