@@ -214,7 +214,7 @@ const SellerDashboard: React.FC = () => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('user_id, full_name, phone, address, created_at')
+        .select('user_id, full_name, phone, address, created_at, loyalty_enabled')
         .order('created_at', { ascending: false });
       if (!error && data) {
         setCustomers(data);
