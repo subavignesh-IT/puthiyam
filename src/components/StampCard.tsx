@@ -114,7 +114,7 @@ const StampCard: React.FC = () => {
     }
   };
 
-  if (!user || loading) return null;
+  if (!user || loading || !loyaltyEnabled) return null;
 
   const stamps = Math.min(orderCount, 10);
   const isComplete = stamps >= 10;
