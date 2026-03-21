@@ -133,6 +133,7 @@ const SellerDashboard: React.FC = () => {
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [packingTypes, setPackingTypes] = useState<{ id: string; name: string }[]>([]);
   const [requestedProducts, setRequestedProducts] = useState<RequestedProduct[]>([]);
+  const [customers, setCustomers] = useState<{ user_id: string; full_name: string | null; phone: string | null; address: string | null; created_at: string; email?: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('orders');
   const [editingProduct, setEditingProduct] = useState<ProductWithDetails | null>(null);
