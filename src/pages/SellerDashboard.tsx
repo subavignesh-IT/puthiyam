@@ -188,6 +188,7 @@ const SellerDashboard: React.FC = () => {
       fetchCategories(),
       fetchPackingTypes(),
       fetchRequestedProducts(),
+      fetchCustomers(),
     ]);
     setLoading(false);
   };
