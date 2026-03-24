@@ -78,6 +78,7 @@ interface ProductVariant {
   id?: string;
   quantity: number;
   price: number;
+  wholesalePrice: number;
   isDefault: boolean;
   stockQuantity: number;
 }
