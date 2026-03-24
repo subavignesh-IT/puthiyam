@@ -934,6 +934,7 @@ const SellerDashboard: React.FC = () => {
         price: v.price,
         is_default: v.isDefault,
         stock_quantity: v.stockQuantity,
+        wholesale_price: v.wholesalePrice || null,
       }));
 
       const { error: variantError } = await supabase
