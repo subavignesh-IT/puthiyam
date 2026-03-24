@@ -101,13 +101,19 @@ const StampCard: React.FC = () => {
   const handleCouponApply = () => {
     if (couponInput.trim().toUpperCase() === couponCode.toUpperCase() && couponCode) {
       setCouponApplied(true);
+      // Store loyalty claim info for the bill
+      localStorage.setItem('loyaltyCoupon', JSON.stringify({
+        code: couponCode,
+        stamps: 10,
+        claimedAt: new Date().toISOString(),
+      }));
       // Reset the loyalty card after coupon is used
       setOrderCount(0);
       setCouponCode('');
       setCouponInput('');
       toast({
         title: '🎉 Coupon Applied!',
-        description: 'Your loyalty card has been reset. Start earning stamps again!',
+        description: 'Your loyalty reward will be shown on your bill!',
       });
       // Reset applied state after a moment so UI updates
       setTimeout(() => setCouponApplied(false), 2000);
