@@ -42,6 +42,15 @@ const CheckoutForm: React.FC = () => {
   const [showShareDialog, setShowShareDialog] = useState(false);
   const billRef = useRef<HTMLDivElement>(null);
   const [billImageUrl, setBillImageUrl] = useState<string | null>(null);
+  const [loyaltyCoupon, setLoyaltyCoupon] = useState<{ code: string; stamps: number } | null>(null);
+
+  // Check for applied loyalty coupon
+  useEffect(() => {
+    const stored = localStorage.getItem('loyaltyCoupon');
+    if (stored) {
+      try { setLoyaltyCoupon(JSON.parse(stored)); } catch {}
+    }
+  }, []);
 
   // Load customer defaults when available
   useEffect(() => {
