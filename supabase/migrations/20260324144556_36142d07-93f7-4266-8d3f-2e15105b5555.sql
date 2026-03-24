@@ -1,0 +1,1 @@
+ALTER TABLE public.product_variants ADD COLUMN wholesale_price numeric NULL DEFAULT NULL;

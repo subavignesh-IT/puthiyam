@@ -148,6 +148,7 @@ export type Database = {
           product_id: string
           quantity: number
           stock_quantity: number
+          wholesale_price: number | null
         }
         Insert: {
           created_at?: string
@@ -157,6 +158,7 @@ export type Database = {
           product_id: string
           quantity: number
           stock_quantity?: number
+          wholesale_price?: number | null
         }
         Update: {
           created_at?: string
@@ -166,6 +168,7 @@ export type Database = {
           product_id?: string
           quantity?: number
           stock_quantity?: number
+          wholesale_price?: number | null
         }
         Relationships: [
           {

@@ -337,27 +337,31 @@ const CheckoutForm: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Share Dialog */}
+        {/* WhatsApp Share Dialog */}
         <AlertDialog open={showShareDialog} onOpenChange={setShowShareDialog}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle className="flex items-center gap-2">
-                <Share2 className="w-5 h-5" />
-                Share Your Bill
+          <AlertDialogContent className="text-center">
+            <AlertDialogHeader className="items-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                <MessageCircle className="w-8 h-8 text-green-600" />
+              </div>
+              <AlertDialogTitle className="text-lg">
+                📄 Kindly send this bill to WhatsApp
               </AlertDialogTitle>
-              <AlertDialogDescription>
-                Your bill image has been downloaded. Would you like to share it?
+              <AlertDialogDescription className="text-sm">
+                Please share your bill image with us on WhatsApp for order confirmation.
               </AlertDialogDescription>
             </AlertDialogHeader>
-            <AlertDialogFooter className="flex-col gap-2 sm:flex-row">
-              <Button onClick={() => { downloadBill(); setShowShareDialog(false); }} variant="outline" className="w-full sm:w-auto">
-                <Download className="w-4 h-4 mr-2" />
-                Just Download
-              </Button>
-              <AlertDialogAction onClick={() => { shareImageToWhatsApp(); setShowShareDialog(false); }} className="gradient-hero w-full sm:w-auto">
+            <AlertDialogFooter className="flex-col gap-2 sm:flex-row justify-center">
+              <AlertDialogAction
+                onClick={() => { shareImageToWhatsApp(); setShowShareDialog(false); }}
+                className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto"
+              >
                 <MessageCircle className="w-4 h-4 mr-2" />
                 Share on WhatsApp
               </AlertDialogAction>
+              <Button onClick={() => setShowShareDialog(false)} variant="ghost" size="sm" className="text-muted-foreground">
+                Skip
+              </Button>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
