@@ -14,10 +14,11 @@ interface CheckoutBillImageProps {
   subtotal: number;
   shippingCost: number;
   total: number;
+  loyaltyCoupon?: { code: string; stamps: number } | null;
 }
 
 const CheckoutBillImage = forwardRef<HTMLDivElement, CheckoutBillImageProps>(
-  ({ orderId, customerName, customerPhone, customerAddress, deliveryType, paymentMethod, paymentStatus, items, subtotal, shippingCost, total }, ref) => {
+  ({ orderId, customerName, customerPhone, customerAddress, deliveryType, paymentMethod, paymentStatus, items, subtotal, shippingCost, total, loyaltyCoupon }, ref) => {
     const orderDate = new Date().toLocaleDateString('en-IN', {
       year: 'numeric',
       month: 'long',
@@ -173,6 +174,28 @@ const CheckoutBillImage = forwardRef<HTMLDivElement, CheckoutBillImageProps>(
             Payment Method: {paymentMethod === 'online' ? 'Online (UPI)' : 'Cash on Delivery'}
           </p>
         </div>
+
+        {/* Loyalty Reward Section */}
+        {loyaltyCoupon && (
+          <div style={{
+            marginBottom: '16px',
+            padding: '12px',
+            backgroundColor: '#FFF8E1',
+            borderRadius: '8px',
+            border: '1px dashed #F9A825',
+            textAlign: 'center',
+          }}>
+            <p style={{ margin: '0 0 4px', fontSize: '13px', fontWeight: 'bold', color: '#F57F17' }}>
+              🎉 Loyalty Reward Claimed!
+            </p>
+            <p style={{ margin: '0 0 2px', fontSize: '11px', color: '#333' }}>
+              Completed <strong>{loyaltyCoupon.stamps} stamps</strong> — Special offer applied
+            </p>
+            <p style={{ margin: '0', fontSize: '12px', fontWeight: 'bold', color: '#8B4513', fontFamily: 'monospace' }}>
+              Coupon: {loyaltyCoupon.code}
+            </p>
+          </div>
+        )}
 
         {/* Footer */}
         <div style={{ textAlign: 'center', fontSize: '10px', color: '#888' }}>
