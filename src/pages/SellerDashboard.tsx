@@ -887,7 +887,7 @@ const SellerDashboard: React.FC = () => {
     setDiscountType('amount');
     setIsLimitedSale(false);
     setSaleEndTime('');
-    setVariants([{ quantity: 50, price: 50, isDefault: true, stockQuantity: 100 }]);
+    setVariants([{ quantity: 50, price: 50, wholesalePrice: 0, isDefault: true, stockQuantity: 100 }]);
     setProductImages([]);
     setEditingProduct(null);
   };
