@@ -745,7 +745,7 @@ const SellerDashboard: React.FC = () => {
   };
 
   const addVariant = () => {
-    setVariants([...variants, { quantity: 100, price: 100, isDefault: false, stockQuantity: 100 }]);
+    setVariants([...variants, { quantity: 100, price: 100, wholesalePrice: 0, isDefault: false, stockQuantity: 100 }]);
   };
 
   const removeVariant = (index: number) => {
