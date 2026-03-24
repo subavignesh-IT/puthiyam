@@ -1479,6 +1479,7 @@ const SellerDashboard: React.FC = () => {
                                   id: v.id,
                                   quantity: v.quantity,
                                   price: v.price,
+                                  wholesalePrice: (v as any).wholesale_price || 0,
                                   isDefault: v.is_default || false,
                                   stockQuantity: v.stock_quantity,
                                 })));
