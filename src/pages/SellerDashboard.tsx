@@ -154,7 +154,7 @@ const SellerDashboard: React.FC = () => {
   const [isLimitedSale, setIsLimitedSale] = useState(false);
   const [saleEndTime, setSaleEndTime] = useState('');
   const [variants, setVariants] = useState<ProductVariant[]>([
-    { quantity: 50, price: 50, isDefault: true, stockQuantity: 100 },
+    { quantity: 50, price: 50, wholesalePrice: 0, isDefault: true, stockQuantity: 100 },
   ]);
   const [productImages, setProductImages] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
