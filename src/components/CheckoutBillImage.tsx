@@ -14,6 +14,7 @@ interface CheckoutBillImageProps {
   subtotal: number;
   shippingCost: number;
   total: number;
+  loyaltyCoupon?: { code: string; stamps: number } | null;
 }
 
 const CheckoutBillImage = forwardRef<HTMLDivElement, CheckoutBillImageProps>(

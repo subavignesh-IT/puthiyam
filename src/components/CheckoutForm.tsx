@@ -416,6 +416,7 @@ const CheckoutForm: React.FC = () => {
           subtotal={subtotal}
           shippingCost={shippingCost}
           total={grandTotal}
+          loyaltyCoupon={loyaltyCoupon}
         />
       </div>
 
