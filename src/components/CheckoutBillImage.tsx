@@ -18,7 +18,7 @@ interface CheckoutBillImageProps {
 }
 
 const CheckoutBillImage = forwardRef<HTMLDivElement, CheckoutBillImageProps>(
-  ({ orderId, customerName, customerPhone, customerAddress, deliveryType, paymentMethod, paymentStatus, items, subtotal, shippingCost, total }, ref) => {
+  ({ orderId, customerName, customerPhone, customerAddress, deliveryType, paymentMethod, paymentStatus, items, subtotal, shippingCost, total, loyaltyCoupon }, ref) => {
     const orderDate = new Date().toLocaleDateString('en-IN', {
       year: 'numeric',
       month: 'long',
