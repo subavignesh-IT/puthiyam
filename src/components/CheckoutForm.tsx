@@ -264,7 +264,8 @@ const CheckoutForm: React.FC = () => {
       duration: 8000,
     });
 
-    // Clear cart
+    // Clear cart and loyalty coupon
+    localStorage.removeItem('loyaltyCoupon');
     clearCart();
   };
 
