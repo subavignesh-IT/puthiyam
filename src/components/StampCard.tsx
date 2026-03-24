@@ -337,7 +337,11 @@ const StampCard: React.FC = () => {
           </div>
           <Button
             className="mt-4 w-full group/btn hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
-            onClick={() => setShowCelebration(false)}
+            onClick={() => {
+              setCouponInput(couponCode);
+              setShowCelebration(false);
+              toast({ title: '🎟️ Coupon Ready!', description: 'Coupon code has been auto-filled. Click Apply to use it!' });
+            }}
           >
             <Sparkles className="w-4 h-4 mr-2 transition-transform duration-300 group-hover/btn:rotate-45" />
             Claim My Reward

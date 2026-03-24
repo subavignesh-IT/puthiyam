@@ -78,6 +78,7 @@ interface ProductVariant {
   id?: string;
   quantity: number;
   price: number;
+  wholesalePrice: number;
   isDefault: boolean;
   stockQuantity: number;
 }
@@ -153,7 +154,7 @@ const SellerDashboard: React.FC = () => {
   const [isLimitedSale, setIsLimitedSale] = useState(false);
   const [saleEndTime, setSaleEndTime] = useState('');
   const [variants, setVariants] = useState<ProductVariant[]>([
-    { quantity: 50, price: 50, isDefault: true, stockQuantity: 100 },
+    { quantity: 50, price: 50, wholesalePrice: 0, isDefault: true, stockQuantity: 100 },
   ]);
   const [productImages, setProductImages] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -744,7 +745,7 @@ const SellerDashboard: React.FC = () => {
   };
 
   const addVariant = () => {
-    setVariants([...variants, { quantity: 100, price: 100, isDefault: false, stockQuantity: 100 }]);
+    setVariants([...variants, { quantity: 100, price: 100, wholesalePrice: 0, isDefault: false, stockQuantity: 100 }]);
   };
 
   const removeVariant = (index: number) => {
@@ -819,6 +820,7 @@ const SellerDashboard: React.FC = () => {
         price: v.price,
         is_default: v.isDefault,
         stock_quantity: v.stockQuantity,
+        wholesale_price: v.wholesalePrice || null,
       }));
 
       const { error: variantError } = await supabase
@@ -886,7 +888,7 @@ const SellerDashboard: React.FC = () => {
     setDiscountType('amount');
     setIsLimitedSale(false);
     setSaleEndTime('');
-    setVariants([{ quantity: 50, price: 50, isDefault: true, stockQuantity: 100 }]);
+    setVariants([{ quantity: 50, price: 50, wholesalePrice: 0, isDefault: true, stockQuantity: 100 }]);
     setProductImages([]);
     setEditingProduct(null);
   };
@@ -932,6 +934,7 @@ const SellerDashboard: React.FC = () => {
         price: v.price,
         is_default: v.isDefault,
         stock_quantity: v.stockQuantity,
+        wholesale_price: v.wholesalePrice || null,
       }));
 
       const { error: variantError } = await supabase
@@ -1478,6 +1481,7 @@ const SellerDashboard: React.FC = () => {
                                   id: v.id,
                                   quantity: v.quantity,
                                   price: v.price,
+                                  wholesalePrice: (v as any).wholesale_price || 0,
                                   isDefault: v.is_default || false,
                                   stockQuantity: v.stock_quantity,
                                 })));
@@ -1696,6 +1700,15 @@ const SellerDashboard: React.FC = () => {
                           value={variant.price}
                           onChange={(e) => updateVariant(index, 'price', parseFloat(e.target.value))}
                           placeholder="50"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-[100px]">
+                        <Label className="text-xs">Wholesale (₹)</Label>
+                        <Input
+                          type="number"
+                          value={variant.wholesalePrice || ''}
+                          onChange={(e) => updateVariant(index, 'wholesalePrice', parseFloat(e.target.value) || 0)}
+                          placeholder="0"
                         />
                       </div>
                       <div className="flex-1 min-w-[100px]">
