@@ -41,6 +41,7 @@ export type Database = {
           delivery_type: string
           id: string
           items: Json
+          loyalty_coupon_code: string | null
           order_number: string | null
           order_status: string
           payment_method: string
@@ -58,6 +59,7 @@ export type Database = {
           delivery_type: string
           id?: string
           items: Json
+          loyalty_coupon_code?: string | null
           order_number?: string | null
           order_status?: string
           payment_method: string
@@ -75,6 +77,7 @@ export type Database = {
           delivery_type?: string
           id?: string
           items?: Json
+          loyalty_coupon_code?: string | null
           order_number?: string | null
           order_status?: string
           payment_method?: string
