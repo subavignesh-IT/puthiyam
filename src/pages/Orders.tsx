@@ -310,6 +310,11 @@ const Orders: React.FC = () => {
                       <Badge variant="outline">
                         {order.delivery_type === 'shipping' ? 'Delivery' : 'Self Pickup'}
                       </Badge>
+                      {(order as any).loyalty_coupon_code && (
+                        <Badge variant="outline" className="border-accent text-accent font-bold">
+                          🎁 Offer Claimed
+                        </Badge>
+                      )}
                     </div>
                   </div>
                 </CardHeader>
