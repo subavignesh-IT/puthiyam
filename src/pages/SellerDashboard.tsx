@@ -1360,6 +1360,109 @@ const SellerDashboard: React.FC = () => {
             </Card>
           </TabsContent>
 
+          {/* Loyalty Claims Tab */}
+          <TabsContent value="loyalty" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Gift className="w-5 h-5" />
+                  Loyalty Offer Claims ({orders.filter(o => (o as any).loyalty_coupon_code).length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {orders.filter(o => (o as any).loyalty_coupon_code).length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">No loyalty claims yet</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Bill No.</TableHead>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Customer</TableHead>
+                          <TableHead>Coupon Code</TableHead>
+                          <TableHead>Order Total</TableHead>
+                          <TableHead>Payment</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Bill</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {orders.filter(o => (o as any).loyalty_coupon_code).map((order) => (
+                          <TableRow key={order.id} className="hover:bg-muted/50 transition-colors">
+                            <TableCell className="font-mono font-bold text-primary">
+                              {order.order_number || getOrderIdForDisplay(order.id)}
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {formatDate(order.created_at)}
+                            </TableCell>
+                            <TableCell>
+                              <div>
+                                <p className="font-medium">{order.customer_name}</p>
+                                <p className="text-xs text-muted-foreground">{order.customer_phone}</p>
+                                {order.customer_address && (
+                                  <p className="text-xs text-muted-foreground truncate max-w-[150px]">
+                                    {order.customer_address}
+                                  </p>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge className="bg-accent/20 text-accent-foreground font-mono">
+                                🎁 {(order as any).loyalty_coupon_code}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="font-semibold">₹{order.total}</TableCell>
+                            <TableCell>
+                              <Badge variant={order.payment_status === 'paid' ? 'default' : 'secondary'}>
+                                {order.payment_status === 'paid' ? '✅ Paid' : '⏳ Pending'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge className={`${getStatusColor(order.order_status)} text-white`}>
+                                {order.order_status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => shareOrderBill(order)}
+                                title="Share Bill"
+                              >
+                                <Share2 className="w-4 h-4" />
+                              </Button>
+                              {/* Hidden Bill Image */}
+                              <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
+                                <OrderBillImage
+                                  ref={(el) => { billRefs.current[`loyalty-${order.id}`] = el; }}
+                                  orderId={order.order_number || order.id}
+                                  customerName={order.customer_name}
+                                  customerPhone={order.customer_phone}
+                                  customerAddress={order.customer_address}
+                                  deliveryType={order.delivery_type}
+                                  paymentMethod={order.payment_method}
+                                  paymentStatus={order.payment_status}
+                                  orderStatus={order.order_status}
+                                  items={order.items}
+                                  subtotal={order.subtotal}
+                                  shippingCost={order.shipping_cost}
+                                  total={order.total}
+                                  createdAt={order.created_at}
+                                  loyaltyInfo={{ stamps: 10, couponCode: (order as any).loyalty_coupon_code }}
+                                />
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* Manage Products Tab */}
           <TabsContent value="products" className="space-y-4">
             <Card>
