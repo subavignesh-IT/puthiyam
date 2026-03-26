@@ -1361,12 +1361,82 @@ const SellerDashboard: React.FC = () => {
           </TabsContent>
 
           {/* Loyalty Claims Tab */}
-          <TabsContent value="loyalty" className="space-y-4">
+          <TabsContent value="loyalty" className="space-y-6">
+            {/* Pending Loyalty Progress */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Gift className="w-5 h-5" />
-                  Loyalty Offer Claims ({orders.filter(o => (o as any).loyalty_coupon_code).length})
+                  <Users className="w-5 h-5 text-orange-500" />
+                  Pending Loyalty Progress
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {(() => {
+                  // Calculate stamps per customer from qualifying orders (≥200, no coupon used)
+                  const customerStamps: Record<string, { name: string; phone: string; stamps: number; totalSpent: number; loyaltyEnabled: boolean }> = {};
+                  orders.forEach(order => {
+                    if ((order as any).loyalty_coupon_code) return; // skip claimed orders
+                    if (order.total < 200) return;
+                    const key = order.customer_phone;
+                    if (!customerStamps[key]) {
+                      const cust = customers.find(c => c.phone === order.customer_phone);
+                      customerStamps[key] = {
+                        name: order.customer_name,
+                        phone: order.customer_phone,
+                        stamps: 0,
+                        totalSpent: 0,
+                        loyaltyEnabled: cust ? true : true,
+                      };
+                    }
+                    customerStamps[key].stamps += 1;
+                    customerStamps[key].totalSpent += Number(order.total);
+                  });
+                  // Only show customers with 1-9 stamps (pending, not yet claimed)
+                  const pending = Object.values(customerStamps).filter(c => c.stamps > 0 && c.stamps % 10 !== 0);
+                  if (pending.length === 0) {
+                    return <p className="text-center text-muted-foreground py-6">No customers with pending loyalty stamps</p>;
+                  }
+                  return (
+                    <div className="grid gap-3">
+                      {pending.sort((a, b) => b.stamps - a.stamps).map((cust) => (
+                        <div key={cust.phone} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/30 transition-colors">
+                          <div className="flex-1">
+                            <p className="font-semibold">{cust.name}</p>
+                            <p className="text-xs text-muted-foreground">{cust.phone}</p>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="flex gap-1">
+                              {Array.from({ length: 10 }).map((_, i) => (
+                                <div
+                                  key={i}
+                                  className={`w-5 h-5 rounded-full border-2 flex items-center justify-center text-[10px] transition-all ${
+                                    i < (cust.stamps % 10)
+                                      ? 'bg-primary border-primary text-primary-foreground'
+                                      : 'border-muted-foreground/30 text-muted-foreground/30'
+                                  }`}
+                                >
+                                  {i < (cust.stamps % 10) ? '✓' : (i + 1)}
+                                </div>
+                              ))}
+                            </div>
+                            <Badge variant="secondary" className="font-mono">
+                              {cust.stamps % 10}/10
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </CardContent>
+            </Card>
+
+            {/* Claimed Loyalty Rewards */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Gift className="w-5 h-5 text-green-500" />
+                  Claimed Rewards ({orders.filter(o => (o as any).loyalty_coupon_code).length})
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -1432,7 +1502,6 @@ const SellerDashboard: React.FC = () => {
                               >
                                 <Share2 className="w-4 h-4" />
                               </Button>
-                              {/* Hidden Bill Image */}
                               <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
                                 <OrderBillImage
                                   ref={(el) => { billRefs.current[`loyalty-${order.id}`] = el; }}
