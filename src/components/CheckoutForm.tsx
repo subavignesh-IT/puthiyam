@@ -96,7 +96,7 @@ const CheckoutForm: React.FC = () => {
       const orderId = generateOrderId(todayOrderCount);
       setGeneratedOrderId(orderId);
 
-      const orderData = {
+      const orderData: Record<string, any> = {
         user_id: user.id,
         customer_name: formData.name,
         customer_phone: formData.phone,
@@ -117,6 +117,11 @@ const CheckoutForm: React.FC = () => {
         shipping_cost: shippingCost,
         total: grandTotal,
       };
+
+      // If loyalty coupon was claimed, store it on the order
+      if (loyaltyCoupon) {
+        orderData.loyalty_coupon_code = loyaltyCoupon.code;
+      }
 
       const { error } = await supabase.from('orders').insert([orderData]);
       if (error) {

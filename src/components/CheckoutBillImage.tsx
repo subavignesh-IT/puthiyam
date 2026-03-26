@@ -182,17 +182,23 @@ const CheckoutBillImage = forwardRef<HTMLDivElement, CheckoutBillImageProps>(
             padding: '12px',
             backgroundColor: '#FFF8E1',
             borderRadius: '8px',
-            border: '1px dashed #F9A825',
+            border: '2px solid #F9A825',
             textAlign: 'center',
           }}>
+            <p style={{ margin: '0 0 4px', fontSize: '14px', fontWeight: 'bold', color: '#E65100' }}>
+              🎁 OFFER CLAIMED
+            </p>
             <p style={{ margin: '0 0 4px', fontSize: '13px', fontWeight: 'bold', color: '#F57F17' }}>
-              🎉 Loyalty Reward Claimed!
+              🎉 Loyalty Reward Applied!
             </p>
             <p style={{ margin: '0 0 2px', fontSize: '11px', color: '#333' }}>
               Completed <strong>{loyaltyCoupon.stamps} stamps</strong> — Special offer applied
             </p>
             <p style={{ margin: '0', fontSize: '12px', fontWeight: 'bold', color: '#8B4513', fontFamily: 'monospace' }}>
               Coupon: {loyaltyCoupon.code}
+            </p>
+            <p style={{ margin: '4px 0 0', fontSize: '10px', color: '#888' }}>
+              ⚠️ This order does not earn loyalty stamps
             </p>
           </div>
         )}
