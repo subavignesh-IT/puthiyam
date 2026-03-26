@@ -1116,8 +1116,14 @@ const SellerDashboard: React.FC = () => {
                                     {order.customer_address}
                                   </p>
                                 )}
+                                {/* Loyalty coupon claimed indicator */}
+                                {(order as any).loyalty_coupon_code && (
+                                  <Badge variant="outline" className="mt-1 text-[10px] border-accent text-accent font-bold">
+                                    🎁 Offer Claimed
+                                  </Badge>
+                                )}
                                 {/* Coupon code area */}
-                                {userLoyaltyMap[order.user_id] && userLoyaltyMap[order.user_id] % 11 >= 10 && (
+                                {!(order as any).loyalty_coupon_code && userLoyaltyMap[order.user_id] && userLoyaltyMap[order.user_id] % 11 >= 10 && (
                                   <Badge variant="outline" className="mt-1 text-[10px] border-primary/30 text-primary">
                                     🎟️ Loyalty Coupon Earned
                                   </Badge>
