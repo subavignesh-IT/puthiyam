@@ -61,14 +61,17 @@ const StampCard: React.FC = () => {
 
   const fetchOrderCount = async () => {
     try {
-      const { count, error } = await supabase
+      // Count qualifying orders (≥₹200) that did NOT use a loyalty coupon
+      const { data, error } = await supabase
         .from('orders')
-        .select('*', { count: 'exact', head: true })
+        .select('id, total, loyalty_coupon_code' as any)
         .eq('user_id', user!.id)
         .gte('total', 200);
 
-      if (!error && count !== null) {
-        const stamps = count % 11;
+      if (!error && data) {
+        // Exclude orders that claimed loyalty (those don't earn stamps)
+        const qualifyingOrders = (data as any[]).filter(o => !o.loyalty_coupon_code);
+        const stamps = qualifyingOrders.length % 11;
         setOrderCount(stamps);
         if (stamps === 10) {
           const code = generateCouponCode(userPhone || '', user!.email || '');

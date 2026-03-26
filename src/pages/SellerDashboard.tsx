@@ -41,7 +41,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Package, Plus, Trash2, Upload, ShoppingCart, Edit, Tag, Percent, Settings, Clock, X, Share2, BarChart3, Bell, Download, DollarSign, Users } from 'lucide-react';
+import { Package, Plus, Trash2, Upload, ShoppingCart, Edit, Tag, Percent, Settings, Clock, X, Share2, BarChart3, Bell, Download, DollarSign, Users, Gift } from 'lucide-react';
 import { DbProduct, DbProductVariant, DbProductImage } from '@/types/product';
 import SalesReportDashboard from '@/components/SalesReportDashboard';
 import OrderBillImage from '@/components/OrderBillImage';
@@ -72,6 +72,7 @@ interface Order {
   total: number;
   created_at: string;
   user_id: string;
+  loyalty_coupon_code?: string | null;
 }
 
 interface ProductVariant {
@@ -1034,12 +1035,12 @@ const SellerDashboard: React.FC = () => {
         </section>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7">
-            <TabsTrigger value="orders" className="flex items-center gap-2">
+          <TabsList className="grid w-full grid-cols-8">
+            <TabsTrigger value="orders" className="flex items-center gap-1 text-xs">
               <ShoppingCart className="w-4 h-4" />
               <span className="hidden sm:inline">Orders</span>
             </TabsTrigger>
-            <TabsTrigger value="requests" className="flex items-center gap-2">
+            <TabsTrigger value="requests" className="flex items-center gap-1 text-xs">
               <Bell className="w-4 h-4" />
               <span className="hidden sm:inline">Requests</span>
               {requestedProducts.length > 0 && (
@@ -1048,23 +1049,32 @@ const SellerDashboard: React.FC = () => {
                 </span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="customers" className="flex items-center gap-2">
+            <TabsTrigger value="loyalty" className="flex items-center gap-1 text-xs">
+              <Gift className="w-4 h-4" />
+              <span className="hidden sm:inline">Loyalty</span>
+              {orders.filter(o => (o as any).loyalty_coupon_code).length > 0 && (
+                <span className="bg-accent text-accent-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  {orders.filter(o => (o as any).loyalty_coupon_code).length}
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="customers" className="flex items-center gap-1 text-xs">
               <Users className="w-4 h-4" />
               <span className="hidden sm:inline">Customers</span>
             </TabsTrigger>
-            <TabsTrigger value="products" className="flex items-center gap-2">
+            <TabsTrigger value="products" className="flex items-center gap-1 text-xs">
               <Package className="w-4 h-4" />
               <span className="hidden sm:inline">Products</span>
             </TabsTrigger>
-            <TabsTrigger value="add" className="flex items-center gap-2">
+            <TabsTrigger value="add" className="flex items-center gap-1 text-xs">
               <Plus className="w-4 h-4" />
               <span className="hidden sm:inline">Add New</span>
             </TabsTrigger>
-            <TabsTrigger value="reports" className="flex items-center gap-2">
+            <TabsTrigger value="reports" className="flex items-center gap-1 text-xs">
               <BarChart3 className="w-4 h-4" />
               <span className="hidden sm:inline">Reports</span>
             </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center gap-2">
+            <TabsTrigger value="settings" className="flex items-center gap-1 text-xs">
               <Settings className="w-4 h-4" />
               <span className="hidden sm:inline">Settings</span>
             </TabsTrigger>
@@ -1115,8 +1125,14 @@ const SellerDashboard: React.FC = () => {
                                     {order.customer_address}
                                   </p>
                                 )}
+                                {/* Loyalty coupon claimed indicator */}
+                                {(order as any).loyalty_coupon_code && (
+                                  <Badge variant="outline" className="mt-1 text-[10px] border-accent text-accent font-bold">
+                                    🎁 Offer Claimed
+                                  </Badge>
+                                )}
                                 {/* Coupon code area */}
-                                {userLoyaltyMap[order.user_id] && userLoyaltyMap[order.user_id] % 11 >= 10 && (
+                                {!(order as any).loyalty_coupon_code && userLoyaltyMap[order.user_id] && userLoyaltyMap[order.user_id] % 11 >= 10 && (
                                   <Badge variant="outline" className="mt-1 text-[10px] border-primary/30 text-primary">
                                     🎟️ Loyalty Coupon Earned
                                   </Badge>
@@ -1332,6 +1348,109 @@ const SellerDashboard: React.FC = () => {
                                     </AlertDialogFooter>
                                   </AlertDialogContent>
                                 </AlertDialog>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Loyalty Claims Tab */}
+          <TabsContent value="loyalty" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Gift className="w-5 h-5" />
+                  Loyalty Offer Claims ({orders.filter(o => (o as any).loyalty_coupon_code).length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {orders.filter(o => (o as any).loyalty_coupon_code).length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">No loyalty claims yet</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Bill No.</TableHead>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Customer</TableHead>
+                          <TableHead>Coupon Code</TableHead>
+                          <TableHead>Order Total</TableHead>
+                          <TableHead>Payment</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Bill</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {orders.filter(o => (o as any).loyalty_coupon_code).map((order) => (
+                          <TableRow key={order.id} className="hover:bg-muted/50 transition-colors">
+                            <TableCell className="font-mono font-bold text-primary">
+                              {order.order_number || getOrderIdForDisplay(order.id)}
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {formatDate(order.created_at)}
+                            </TableCell>
+                            <TableCell>
+                              <div>
+                                <p className="font-medium">{order.customer_name}</p>
+                                <p className="text-xs text-muted-foreground">{order.customer_phone}</p>
+                                {order.customer_address && (
+                                  <p className="text-xs text-muted-foreground truncate max-w-[150px]">
+                                    {order.customer_address}
+                                  </p>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge className="bg-accent/20 text-accent-foreground font-mono">
+                                🎁 {(order as any).loyalty_coupon_code}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="font-semibold">₹{order.total}</TableCell>
+                            <TableCell>
+                              <Badge variant={order.payment_status === 'paid' ? 'default' : 'secondary'}>
+                                {order.payment_status === 'paid' ? '✅ Paid' : '⏳ Pending'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge className={`${getStatusColor(order.order_status)} text-white`}>
+                                {order.order_status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => shareOrderBill(order)}
+                                title="Share Bill"
+                              >
+                                <Share2 className="w-4 h-4" />
+                              </Button>
+                              {/* Hidden Bill Image */}
+                              <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
+                                <OrderBillImage
+                                  ref={(el) => { billRefs.current[`loyalty-${order.id}`] = el; }}
+                                  orderId={order.order_number || order.id}
+                                  customerName={order.customer_name}
+                                  customerPhone={order.customer_phone}
+                                  customerAddress={order.customer_address}
+                                  deliveryType={order.delivery_type}
+                                  paymentMethod={order.payment_method}
+                                  paymentStatus={order.payment_status}
+                                  orderStatus={order.order_status}
+                                  items={order.items}
+                                  subtotal={order.subtotal}
+                                  shippingCost={order.shipping_cost}
+                                  total={order.total}
+                                  createdAt={order.created_at}
+                                  loyaltyInfo={{ stamps: 10, couponCode: (order as any).loyalty_coupon_code }}
+                                />
                               </div>
                             </TableCell>
                           </TableRow>

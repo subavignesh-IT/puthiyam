@@ -1,0 +1,1 @@
+ALTER TABLE public.orders ADD COLUMN loyalty_coupon_code text DEFAULT NULL;

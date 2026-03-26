@@ -196,23 +196,42 @@ const OrderBillImage = forwardRef<HTMLDivElement, OrderBillImageProps>(({
         <div style={{
           marginTop: '16px',
           padding: '12px',
-          backgroundColor: loyaltyInfo.stamps >= 10 ? '#fef3c7' : '#f0f9ff',
+          backgroundColor: loyaltyInfo.stamps >= 10 && loyaltyInfo.couponCode ? '#FFF8E1' : loyaltyInfo.stamps >= 10 ? '#fef3c7' : '#f0f9ff',
           borderRadius: '8px',
-          border: loyaltyInfo.stamps >= 10 ? '1px solid #f59e0b' : '1px solid #bae6fd',
+          border: loyaltyInfo.stamps >= 10 && loyaltyInfo.couponCode ? '2px solid #F9A825' : loyaltyInfo.stamps >= 10 ? '1px solid #f59e0b' : '1px solid #bae6fd',
           fontSize: '12px',
         }}>
-          <p style={{ margin: '0 0 4px 0', fontWeight: 'bold', color: '#333' }}>
-            🎯 Loyalty Progress: {Math.min(loyaltyInfo.stamps, 10)}/10 stamps
-          </p>
-          {loyaltyInfo.stamps >= 10 && loyaltyInfo.couponCode && (
-            <p style={{ margin: '0', color: '#92400e', fontWeight: 'bold' }}>
-              🎉 Loyalty Complete! Coupon: <span style={{ fontFamily: 'monospace', letterSpacing: '1px' }}>{loyaltyInfo.couponCode}</span>
-            </p>
-          )}
-          {loyaltyInfo.stamps < 10 && (
-            <p style={{ margin: '0', color: '#666' }}>
-              {10 - loyaltyInfo.stamps} more order{10 - loyaltyInfo.stamps !== 1 ? 's' : ''} (₹200+) to unlock a special offer!
-            </p>
+          {loyaltyInfo.stamps >= 10 && loyaltyInfo.couponCode ? (
+            <>
+              <p style={{ margin: '0 0 4px 0', fontWeight: 'bold', color: '#E65100', fontSize: '14px', textAlign: 'center' }}>
+                🎁 OFFER CLAIMED
+              </p>
+              <p style={{ margin: '0 0 4px 0', fontWeight: 'bold', color: '#333' }}>
+                🎯 Loyalty Complete: {Math.min(loyaltyInfo.stamps, 10)}/10 stamps
+              </p>
+              <p style={{ margin: '0 0 2px 0', color: '#92400e', fontWeight: 'bold' }}>
+                🎉 Coupon: <span style={{ fontFamily: 'monospace', letterSpacing: '1px' }}>{loyaltyInfo.couponCode}</span>
+              </p>
+              <p style={{ margin: '4px 0 0', fontSize: '10px', color: '#888', textAlign: 'center' }}>
+                ⚠️ This order does not earn loyalty stamps
+              </p>
+            </>
+          ) : (
+            <>
+              <p style={{ margin: '0 0 4px 0', fontWeight: 'bold', color: '#333' }}>
+                🎯 Loyalty Progress: {Math.min(loyaltyInfo.stamps, 10)}/10 stamps
+              </p>
+              {loyaltyInfo.stamps >= 10 && loyaltyInfo.couponCode && (
+                <p style={{ margin: '0', color: '#92400e', fontWeight: 'bold' }}>
+                  🎉 Loyalty Complete! Coupon: <span style={{ fontFamily: 'monospace', letterSpacing: '1px' }}>{loyaltyInfo.couponCode}</span>
+                </p>
+              )}
+              {loyaltyInfo.stamps < 10 && (
+                <p style={{ margin: '0', color: '#666' }}>
+                  {10 - loyaltyInfo.stamps} more order{10 - loyaltyInfo.stamps !== 1 ? 's' : ''} (₹200+) to unlock a special offer!
+                </p>
+              )}
+            </>
           )}
         </div>
       )}
