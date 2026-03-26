@@ -123,7 +123,7 @@ const CheckoutForm: React.FC = () => {
         orderData.loyalty_coupon_code = loyaltyCoupon.code;
       }
 
-      const { error } = await supabase.from('orders').insert([orderData]);
+      const { error } = await supabase.from('orders').insert([orderData] as any);
       if (error) {
         console.error('Error saving order:', error);
         return null;
