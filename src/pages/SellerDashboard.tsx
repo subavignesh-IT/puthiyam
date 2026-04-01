@@ -141,6 +141,7 @@ const SellerDashboard: React.FC = () => {
   const [editingProduct, setEditingProduct] = useState<ProductWithDetails | null>(null);
   const billRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
   const [userLoyaltyMap, setUserLoyaltyMap] = useState<Record<string, number>>({});
+  const [loyaltyClaims, setLoyaltyClaims] = useState<any[]>([]);
 
   // Product form state
   const [productName, setProductName] = useState('');
