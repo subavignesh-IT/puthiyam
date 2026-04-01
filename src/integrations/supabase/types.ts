@@ -32,6 +32,53 @@ export type Database = {
         }
         Relationships: []
       }
+      loyalty_claims: {
+        Row: {
+          claimed_at: string
+          coupon_code: string
+          created_at: string
+          customer_name: string
+          customer_phone: string
+          id: string
+          is_redeemed: boolean
+          order_id: string | null
+          stamps_completed: number
+          user_id: string
+        }
+        Insert: {
+          claimed_at?: string
+          coupon_code: string
+          created_at?: string
+          customer_name: string
+          customer_phone: string
+          id?: string
+          is_redeemed?: boolean
+          order_id?: string | null
+          stamps_completed?: number
+          user_id: string
+        }
+        Update: {
+          claimed_at?: string
+          coupon_code?: string
+          created_at?: string
+          customer_name?: string
+          customer_phone?: string
+          id?: string
+          is_redeemed?: boolean
+          order_id?: string | null
+          stamps_completed?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loyalty_claims_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           created_at: string

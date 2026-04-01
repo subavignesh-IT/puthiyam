@@ -141,6 +141,7 @@ const SellerDashboard: React.FC = () => {
   const [editingProduct, setEditingProduct] = useState<ProductWithDetails | null>(null);
   const billRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
   const [userLoyaltyMap, setUserLoyaltyMap] = useState<Record<string, number>>({});
+  const [loyaltyClaims, setLoyaltyClaims] = useState<any[]>([]);
 
   // Product form state
   const [productName, setProductName] = useState('');
@@ -191,8 +192,21 @@ const SellerDashboard: React.FC = () => {
       fetchPackingTypes(),
       fetchRequestedProducts(),
       fetchCustomers(),
+      fetchLoyaltyClaims(),
     ]);
     setLoading(false);
+  };
+
+  const fetchLoyaltyClaims = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('loyalty_claims')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (!error && data) setLoyaltyClaims(data);
+    } catch (err) {
+      console.error('Error fetching loyalty claims:', err);
+    }
   };
 
   const fetchRequestedProducts = async () => {
@@ -1362,6 +1376,107 @@ const SellerDashboard: React.FC = () => {
 
           {/* Loyalty Claims Tab */}
           <TabsContent value="loyalty" className="space-y-6">
+            {/* Summary Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <Card className="p-3 text-center">
+                <p className="text-2xl font-bold text-primary">{loyaltyClaims.length}</p>
+                <p className="text-xs text-muted-foreground">Total Claims</p>
+              </Card>
+              <Card className="p-3 text-center">
+                <p className="text-2xl font-bold text-green-600">{loyaltyClaims.filter(c => c.is_redeemed).length}</p>
+                <p className="text-xs text-muted-foreground">Redeemed</p>
+              </Card>
+              <Card className="p-3 text-center">
+                <p className="text-2xl font-bold text-orange-500">{loyaltyClaims.filter(c => !c.is_redeemed).length}</p>
+                <p className="text-xs text-muted-foreground">Pending</p>
+              </Card>
+              <Card className="p-3 text-center">
+                <p className="text-2xl font-bold text-primary">{(() => {
+                  const customerStamps: Record<string, number> = {};
+                  orders.forEach(o => { if (o.total >= 200 && !(o as any).loyalty_coupon_code) customerStamps[o.customer_phone] = (customerStamps[o.customer_phone] || 0) + 1; });
+                  return Object.values(customerStamps).filter(s => s % 10 > 0).length;
+                })()}</p>
+                <p className="text-xs text-muted-foreground">In Progress</p>
+              </Card>
+            </div>
+
+            {/* All Claims from DB */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Gift className="w-5 h-5 text-primary" />
+                  All Loyalty Claims ({loyaltyClaims.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loyaltyClaims.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">No loyalty claims yet</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>#</TableHead>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Customer</TableHead>
+                          <TableHead>Coupon Code</TableHead>
+                          <TableHead>Stamps</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Bill</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {loyaltyClaims.map((claim, idx) => {
+                          const linkedOrder = claim.order_id ? orders.find(o => o.id === claim.order_id) : null;
+                          return (
+                            <TableRow key={claim.id} className="hover:bg-muted/50 transition-colors">
+                              <TableCell className="font-medium">{idx + 1}</TableCell>
+                              <TableCell className="text-sm">{new Date(claim.claimed_at).toLocaleDateString()}</TableCell>
+                              <TableCell>
+                                <div>
+                                  <p className="font-medium">{claim.customer_name}</p>
+                                  <p className="text-xs text-muted-foreground">{claim.customer_phone}</p>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <Badge className="bg-accent/20 text-accent-foreground font-mono">
+                                  🎁 {claim.coupon_code}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex gap-0.5">
+                                  {Array.from({ length: 10 }).map((_, i) => (
+                                    <div key={i} className="w-3 h-3 rounded-full bg-primary" />
+                                  ))}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant={claim.is_redeemed ? 'default' : 'secondary'}>
+                                  {claim.is_redeemed ? '✅ Redeemed' : '⏳ Pending'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                {linkedOrder && (
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={() => shareOrderBill(linkedOrder)}
+                                    title="Share Bill"
+                                  >
+                                    <Share2 className="w-4 h-4" />
+                                  </Button>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             {/* Pending Loyalty Progress */}
             <Card>
               <CardHeader>
@@ -1372,27 +1487,26 @@ const SellerDashboard: React.FC = () => {
               </CardHeader>
               <CardContent>
                 {(() => {
-                  // Calculate stamps per customer from qualifying orders (≥200, no coupon used)
-                  const customerStamps: Record<string, { name: string; phone: string; stamps: number; totalSpent: number; loyaltyEnabled: boolean }> = {};
+                  const redeemedPerUser: Record<string, number> = {};
+                  loyaltyClaims.filter(c => c.is_redeemed).forEach(c => {
+                    redeemedPerUser[c.customer_phone] = (redeemedPerUser[c.customer_phone] || 0) + 1;
+                  });
+                  const customerStamps: Record<string, { name: string; phone: string; stamps: number }> = {};
                   orders.forEach(order => {
-                    if ((order as any).loyalty_coupon_code) return; // skip claimed orders
+                    if ((order as any).loyalty_coupon_code) return;
                     if (order.total < 200) return;
                     const key = order.customer_phone;
                     if (!customerStamps[key]) {
-                      const cust = customers.find(c => c.phone === order.customer_phone);
-                      customerStamps[key] = {
-                        name: order.customer_name,
-                        phone: order.customer_phone,
-                        stamps: 0,
-                        totalSpent: 0,
-                        loyaltyEnabled: cust ? true : true,
-                      };
+                      customerStamps[key] = { name: order.customer_name, phone: order.customer_phone, stamps: 0 };
                     }
                     customerStamps[key].stamps += 1;
-                    customerStamps[key].totalSpent += Number(order.total);
                   });
-                  // Only show customers with 1-9 stamps (pending, not yet claimed)
-                  const pending = Object.values(customerStamps).filter(c => c.stamps > 0 && c.stamps % 10 !== 0);
+                  // Subtract redeemed cycles
+                  Object.keys(customerStamps).forEach(key => {
+                    const redeemed = redeemedPerUser[key] || 0;
+                    customerStamps[key].stamps = Math.max(0, customerStamps[key].stamps - (redeemed * 10)) % 10;
+                  });
+                  const pending = Object.values(customerStamps).filter(c => c.stamps > 0);
                   if (pending.length === 0) {
                     return <p className="text-center text-muted-foreground py-6">No customers with pending loyalty stamps</p>;
                   }
@@ -1400,27 +1514,27 @@ const SellerDashboard: React.FC = () => {
                     <div className="grid gap-3">
                       {pending.sort((a, b) => b.stamps - a.stamps).map((cust) => (
                         <div key={cust.phone} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/30 transition-colors">
-                          <div className="flex-1">
-                            <p className="font-semibold">{cust.name}</p>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold truncate">{cust.name}</p>
                             <p className="text-xs text-muted-foreground">{cust.phone}</p>
                           </div>
-                          <div className="flex items-center gap-3">
-                            <div className="flex gap-1">
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <div className="flex gap-0.5">
                               {Array.from({ length: 10 }).map((_, i) => (
                                 <div
                                   key={i}
-                                  className={`w-5 h-5 rounded-full border-2 flex items-center justify-center text-[10px] transition-all ${
-                                    i < (cust.stamps % 10)
+                                  className={`w-4 h-4 rounded-full border flex items-center justify-center text-[8px] ${
+                                    i < cust.stamps
                                       ? 'bg-primary border-primary text-primary-foreground'
                                       : 'border-muted-foreground/30 text-muted-foreground/30'
                                   }`}
                                 >
-                                  {i < (cust.stamps % 10) ? '✓' : (i + 1)}
+                                  {i < cust.stamps ? '✓' : ''}
                                 </div>
                               ))}
                             </div>
-                            <Badge variant="secondary" className="font-mono">
-                              {cust.stamps % 10}/10
+                            <Badge variant="secondary" className="font-mono text-xs">
+                              {cust.stamps}/10
                             </Badge>
                           </div>
                         </div>
@@ -1431,17 +1545,17 @@ const SellerDashboard: React.FC = () => {
               </CardContent>
             </Card>
 
-            {/* Claimed Loyalty Rewards */}
+            {/* Orders with Loyalty Coupon */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Gift className="w-5 h-5 text-green-500" />
-                  Claimed Rewards ({orders.filter(o => (o as any).loyalty_coupon_code).length})
+                  Orders with Loyalty Coupon ({orders.filter(o => (o as any).loyalty_coupon_code).length})
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 {orders.filter(o => (o as any).loyalty_coupon_code).length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">No loyalty claims yet</p>
+                  <p className="text-center text-muted-foreground py-6">No orders with loyalty coupons</p>
                 ) : (
                   <div className="overflow-x-auto">
                     <Table>
@@ -1450,32 +1564,21 @@ const SellerDashboard: React.FC = () => {
                           <TableHead>Bill No.</TableHead>
                           <TableHead>Date</TableHead>
                           <TableHead>Customer</TableHead>
-                          <TableHead>Coupon Code</TableHead>
-                          <TableHead>Order Total</TableHead>
-                          <TableHead>Payment</TableHead>
-                          <TableHead>Status</TableHead>
+                          <TableHead>Coupon</TableHead>
+                          <TableHead>Total</TableHead>
                           <TableHead>Bill</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {orders.filter(o => (o as any).loyalty_coupon_code).map((order) => (
-                          <TableRow key={order.id} className="hover:bg-muted/50 transition-colors">
+                          <TableRow key={order.id}>
                             <TableCell className="font-mono font-bold text-primary">
                               {order.order_number || getOrderIdForDisplay(order.id)}
                             </TableCell>
-                            <TableCell className="text-sm">
-                              {formatDate(order.created_at)}
-                            </TableCell>
+                            <TableCell className="text-sm">{formatDate(order.created_at)}</TableCell>
                             <TableCell>
-                              <div>
-                                <p className="font-medium">{order.customer_name}</p>
-                                <p className="text-xs text-muted-foreground">{order.customer_phone}</p>
-                                {order.customer_address && (
-                                  <p className="text-xs text-muted-foreground truncate max-w-[150px]">
-                                    {order.customer_address}
-                                  </p>
-                                )}
-                              </div>
+                              <p className="font-medium">{order.customer_name}</p>
+                              <p className="text-xs text-muted-foreground">{order.customer_phone}</p>
                             </TableCell>
                             <TableCell>
                               <Badge className="bg-accent/20 text-accent-foreground font-mono">
@@ -1484,22 +1587,7 @@ const SellerDashboard: React.FC = () => {
                             </TableCell>
                             <TableCell className="font-semibold">₹{order.total}</TableCell>
                             <TableCell>
-                              <Badge variant={order.payment_status === 'paid' ? 'default' : 'secondary'}>
-                                {order.payment_status === 'paid' ? '✅ Paid' : '⏳ Pending'}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <Badge className={`${getStatusColor(order.order_status)} text-white`}>
-                                {order.order_status}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={() => shareOrderBill(order)}
-                                title="Share Bill"
-                              >
+                              <Button variant="outline" size="icon" onClick={() => shareOrderBill(order)}>
                                 <Share2 className="w-4 h-4" />
                               </Button>
                               <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>

@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
 import { Mail, Lock, Eye, EyeOff, Phone } from 'lucide-react';
+import ProfileEditDialog from '@/components/ProfileEditDialog';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -186,7 +187,11 @@ const Login: React.FC = () => {
               </Button>
             </form>
 
-            <div className="mt-6 text-center text-sm">
+            <div className="mt-4 flex justify-center">
+              <ProfileEditDialog />
+            </div>
+
+            <div className="mt-4 text-center text-sm">
               <span className="text-muted-foreground">Don't have an account? </span>
               <Link to="/signup" className="text-primary hover:underline font-medium">
                 Sign up

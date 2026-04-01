@@ -39,15 +39,31 @@ const StampCard: React.FC = () => {
   const [couponApplied, setCouponApplied] = useState(false);
   const [userPhone, setUserPhone] = useState('');
   const [loyaltyEnabled, setLoyaltyEnabled] = useState(true);
+  const [hasPendingClaim, setHasPendingClaim] = useState(false);
 
   useEffect(() => {
     if (user) {
-      fetchOrderCount();
       fetchUserProfile();
+      fetchOrderCount();
+      checkPendingClaim();
     } else {
       setLoading(false);
     }
   }, [user]);
+
+  const checkPendingClaim = async () => {
+    const { data } = await supabase
+      .from('loyalty_claims')
+      .select('id, coupon_code')
+      .eq('user_id', user!.id)
+      .eq('is_redeemed', false)
+      .order('created_at', { ascending: false })
+      .limit(1);
+    if (data && data.length > 0) {
+      setHasPendingClaim(true);
+      setCouponCode(data[0].coupon_code);
+    }
+  };
 
   const fetchUserProfile = async () => {
     const { data } = await supabase
@@ -56,27 +72,51 @@ const StampCard: React.FC = () => {
       .eq('user_id', user!.id)
       .single();
     if (data?.phone) setUserPhone(data.phone);
-    if (data && (data as any).loyalty_enabled === false) setLoyaltyEnabled(false);
+    if (data && data.loyalty_enabled === false) setLoyaltyEnabled(false);
   };
 
   const fetchOrderCount = async () => {
     try {
-      // Count qualifying orders (≥₹200) that did NOT use a loyalty coupon
       const { data, error } = await supabase
         .from('orders')
-        .select('id, total, loyalty_coupon_code' as any)
+        .select('id, total, loyalty_coupon_code')
         .eq('user_id', user!.id)
         .gte('total', 200);
 
       if (!error && data) {
-        // Exclude orders that claimed loyalty (those don't earn stamps)
+        // Count redeemed claims to know how many full cycles completed
+        const { data: claims } = await supabase
+          .from('loyalty_claims')
+          .select('id')
+          .eq('user_id', user!.id)
+          .eq('is_redeemed', true);
+        
+        const redeemedCount = claims?.length || 0;
+        
+        // Qualifying orders = orders without loyalty coupon
         const qualifyingOrders = (data as any[]).filter(o => !o.loyalty_coupon_code);
-        const stamps = qualifyingOrders.length % 11;
-        setOrderCount(stamps);
-        if (stamps === 10) {
+        // Each redeemed claim consumed 10 stamps, so remaining stamps:
+        const stamps = Math.max(0, qualifyingOrders.length - (redeemedCount * 10)) % 10;
+        
+        // Check for pending unredeemed claim
+        const { data: pendingClaim } = await supabase
+          .from('loyalty_claims')
+          .select('id')
+          .eq('user_id', user!.id)
+          .eq('is_redeemed', false)
+          .limit(1);
+        
+        if (pendingClaim && pendingClaim.length > 0) {
+          // Has pending claim, show 0 stamps (already claimed, waiting to use)
+          setOrderCount(0);
+        } else if (qualifyingOrders.length - (redeemedCount * 10) >= 10) {
+          // 10 stamps reached, auto-generate coupon and save claim
+          setOrderCount(10);
           const code = generateCouponCode(userPhone || '', user!.email || '');
           setCouponCode(code);
           setShowCelebration(true);
+        } else {
+          setOrderCount(stamps);
         }
       }
     } catch (err) {
@@ -92,6 +132,40 @@ const StampCard: React.FC = () => {
     }
   }, [userPhone, orderCount, user]);
 
+  const handleClaimReward = async () => {
+    if (!user) return;
+    const code = generateCouponCode(userPhone, user.email || '');
+    
+    // Save claim to database
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('full_name, phone')
+      .eq('user_id', user.id)
+      .single();
+
+    await supabase.from('loyalty_claims').insert({
+      user_id: user.id,
+      customer_name: profile?.full_name || 'Customer',
+      customer_phone: profile?.phone || '',
+      coupon_code: code,
+      stamps_completed: 10,
+      is_redeemed: false,
+    } as any);
+
+    // Store for checkout use
+    localStorage.setItem('loyaltyCoupon', JSON.stringify({
+      code,
+      stamps: 10,
+      claimedAt: new Date().toISOString(),
+    }));
+
+    setCouponInput(code);
+    setShowCelebration(false);
+    setHasPendingClaim(true);
+    setOrderCount(0); // Reset stamps immediately
+    toast({ title: '🎟️ Coupon Ready!', description: 'Coupon code has been auto-filled. Click Apply to use it!' });
+  };
+
   const handleCopyCoupon = async () => {
     try {
       await navigator.clipboard.writeText(couponCode);
@@ -101,24 +175,31 @@ const StampCard: React.FC = () => {
     }
   };
 
-  const handleCouponApply = () => {
+  const handleCouponApply = async () => {
     if (couponInput.trim().toUpperCase() === couponCode.toUpperCase() && couponCode) {
       setCouponApplied(true);
-      // Store loyalty claim info for the bill
       localStorage.setItem('loyaltyCoupon', JSON.stringify({
         code: couponCode,
         stamps: 10,
         claimedAt: new Date().toISOString(),
       }));
-      // Reset the loyalty card after coupon is used
+
+      // Mark claim as redeemed in DB
+      await supabase
+        .from('loyalty_claims')
+        .update({ is_redeemed: true } as any)
+        .eq('user_id', user!.id)
+        .eq('coupon_code', couponCode)
+        .eq('is_redeemed', false);
+
       setOrderCount(0);
+      setHasPendingClaim(false);
       setCouponCode('');
       setCouponInput('');
       toast({
         title: '🎉 Coupon Applied!',
         description: 'Your loyalty reward will be shown on your bill!',
       });
-      // Reset applied state after a moment so UI updates
       setTimeout(() => setCouponApplied(false), 2000);
     }
   };
@@ -148,7 +229,7 @@ const StampCard: React.FC = () => {
               <div className="flex items-center gap-2 group">
                 <div className="relative">
                   <Gift className="w-5 h-5 text-primary transition-transform duration-300 group-hover:scale-125 group-hover:rotate-12" />
-                  {isComplete && (
+                  {(isComplete || hasPendingClaim) && (
                     <Sparkles className="w-3 h-3 text-accent absolute -top-1 -right-1 animate-pulse" />
                   )}
                 </div>
@@ -179,9 +260,11 @@ const StampCard: React.FC = () => {
             </div>
 
             <p className="text-xs text-muted-foreground mb-2">
-              {isComplete
-                ? '🎉 You earned a special offer on your next order!'
-                : `Complete ${10 - stamps} more order${10 - stamps !== 1 ? 's' : ''} (₹200+) to unlock a special offer!`}
+              {hasPendingClaim
+                ? '🎟️ You have a pending reward! Apply your coupon code below.'
+                : isComplete
+                  ? '🎉 You earned a special offer on your next order!'
+                  : `Complete ${10 - stamps} more order${10 - stamps !== 1 ? 's' : ''} (₹200+) to unlock a special offer!`}
             </p>
 
             <TooltipProvider delayDuration={200}>
@@ -224,7 +307,7 @@ const StampCard: React.FC = () => {
               </div>
             </TooltipProvider>
 
-            {isComplete && (
+            {(isComplete || hasPendingClaim) && couponCode && (
               <div className="mt-4 bg-primary/10 border border-primary/30 rounded-xl p-3 text-center animate-scale-in group/banner hover:bg-primary/15 transition-all duration-300">
                 <p className="text-sm font-semibold text-primary flex items-center justify-center gap-1.5">
                   <Trophy className="w-4 h-4 transition-transform duration-300 group-hover/banner:scale-125 group-hover/banner:rotate-12" />
@@ -241,7 +324,7 @@ const StampCard: React.FC = () => {
                     <Copy className="w-3.5 h-3.5" />
                   </Button>
                 </div>
-                <p className="text-[10px] text-muted-foreground mt-1">Apply it on your 11th order</p>
+                <p className="text-[10px] text-muted-foreground mt-1">Apply it on your next order</p>
               </div>
             )}
 
@@ -299,8 +382,8 @@ const StampCard: React.FC = () => {
                 { emoji: '🛒', text: 'Place an order of ₹200 or more to earn a stamp' },
                 { emoji: '🎯', text: 'Collect 10 stamps to complete the card' },
                 { emoji: '🎟️', text: 'Get a unique coupon code on completion!' },
-                { emoji: '🎁', text: 'Apply coupon for a special offer on your 11th order!' },
-                { emoji: '🔄', text: 'Card resets after use — earn rewards again!' },
+                { emoji: '🎁', text: 'Apply coupon for a special offer on your next order!' },
+                { emoji: '🔄', text: 'Card resets after claim — earn rewards again!' },
               ].map((item, idx) => (
                 <div
                   key={idx}
@@ -346,11 +429,7 @@ const StampCard: React.FC = () => {
           </div>
           <Button
             className="mt-4 w-full group/btn hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
-            onClick={() => {
-              setCouponInput(couponCode);
-              setShowCelebration(false);
-              toast({ title: '🎟️ Coupon Ready!', description: 'Coupon code has been auto-filled. Click Apply to use it!' });
-            }}
+            onClick={handleClaimReward}
           >
             <Sparkles className="w-4 h-4 mr-2 transition-transform duration-300 group-hover/btn:rotate-45" />
             Claim My Reward
