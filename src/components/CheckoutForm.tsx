@@ -123,11 +123,21 @@ const CheckoutForm: React.FC = () => {
         orderData.loyalty_coupon_code = loyaltyCoupon.code;
       }
 
-      const { error } = await supabase.from('orders').insert([orderData] as any);
+      const { data: insertedOrder, error } = await supabase.from('orders').insert([orderData] as any).select('id').single();
       if (error) {
         console.error('Error saving order:', error);
         return null;
       }
+
+      // Link loyalty claim to the order
+      if (loyaltyCoupon && insertedOrder) {
+        await supabase
+          .from('loyalty_claims')
+          .update({ order_id: insertedOrder.id, is_redeemed: true } as any)
+          .eq('coupon_code', loyaltyCoupon.code)
+          .eq('user_id', user!.id);
+      }
+
       return orderId;
     } catch (error) {
       console.error('Error saving order:', error);
