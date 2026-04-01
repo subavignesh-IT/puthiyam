@@ -192,8 +192,21 @@ const SellerDashboard: React.FC = () => {
       fetchPackingTypes(),
       fetchRequestedProducts(),
       fetchCustomers(),
+      fetchLoyaltyClaims(),
     ]);
     setLoading(false);
+  };
+
+  const fetchLoyaltyClaims = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('loyalty_claims')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (!error && data) setLoyaltyClaims(data);
+    } catch (err) {
+      console.error('Error fetching loyalty claims:', err);
+    }
   };
 
   const fetchRequestedProducts = async () => {
