@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
 import { Mail, Lock, Eye, EyeOff, Phone } from 'lucide-react';
+import ProfileEditDialog from '@/components/ProfileEditDialog';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
