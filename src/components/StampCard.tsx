@@ -205,7 +205,6 @@ const StampCard: React.FC = () => {
         .eq('coupon_code', couponCode)
         .eq('is_redeemed', false);
 
-      setOrderCount(0);
       setHasPendingClaim(false);
       setCouponCode('');
       setCouponInput('');
@@ -213,7 +212,11 @@ const StampCard: React.FC = () => {
         title: '🎉 Coupon Applied!',
         description: 'Your loyalty reward will be shown on your bill!',
       });
-      setTimeout(() => setCouponApplied(false), 2000);
+      // Refetch stamps so new orders count fresh
+      setTimeout(() => {
+        setCouponApplied(false);
+        fetchOrderCount();
+      }, 2000);
     }
   };
 
