@@ -344,7 +344,7 @@ const SellerDashboard: React.FC = () => {
       // Compute loyalty stamps per user (only orders with total >= 200)
       const loyaltyMap: Record<string, number> = {};
       (data || []).forEach(order => {
-        if (order.total >= 200) {
+        if (order.total >= loyaltyMinAmount) {
           loyaltyMap[order.user_id] = (loyaltyMap[order.user_id] || 0) + 1;
         }
       });
