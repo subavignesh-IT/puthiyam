@@ -392,7 +392,7 @@ const StampCard: React.FC = () => {
             </div>
             <div className="space-y-3 text-sm">
               {[
-                { emoji: '🛒', text: 'Place an order of ₹200 or more to earn a stamp' },
+                { emoji: '🛒', text: `Place an order of ₹${minAmount} or more to earn a stamp` },
                 { emoji: '🎯', text: 'Collect 10 stamps to complete the card' },
                 { emoji: '🎟️', text: 'Get a unique coupon code on completion!' },
                 { emoji: '🎁', text: 'Apply coupon for a special offer on your next order!' },
