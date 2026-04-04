@@ -1668,6 +1668,23 @@ const SellerDashboard: React.FC = () => {
                             <Badge variant="secondary" className="font-mono text-xs">
                               {cust.stamps}/10
                             </Badge>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/10">
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Reset {cust.name}'s points?</AlertDialogTitle>
+                                  <AlertDialogDescription>This will clear all loyalty stamps for this customer. They will start from 0.</AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleResetCustomerPoints(cust.phone)}>Reset Points</AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           </div>
                         </div>
                       ))}
