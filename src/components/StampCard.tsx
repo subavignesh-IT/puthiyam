@@ -40,6 +40,7 @@ const StampCard: React.FC = () => {
   const [userPhone, setUserPhone] = useState('');
   const [loyaltyEnabled, setLoyaltyEnabled] = useState(true);
   const [hasPendingClaim, setHasPendingClaim] = useState(false);
+  const [minAmount, setMinAmount] = useState(200);
 
   useEffect(() => {
     if (user) {

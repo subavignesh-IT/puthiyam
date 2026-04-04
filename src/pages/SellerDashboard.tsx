@@ -1626,7 +1626,7 @@ const SellerDashboard: React.FC = () => {
                   const customerStamps: Record<string, { name: string; phone: string; stamps: number }> = {};
                   orders.forEach(order => {
                     if ((order as any).loyalty_coupon_code) return;
-                    if (order.total < 200) return;
+                    if (order.total < loyaltyMinAmount) return;
                     const key = order.customer_phone;
                     if (!customerStamps[key]) {
                       customerStamps[key] = { name: order.customer_name, phone: order.customer_phone, stamps: 0 };
