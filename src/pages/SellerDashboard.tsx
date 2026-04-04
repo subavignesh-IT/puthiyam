@@ -212,7 +212,87 @@ const SellerDashboard: React.FC = () => {
     }
   };
 
-  const fetchRequestedProducts = async () => {
+  const fetchLoyaltyMinAmount = async () => {
+    try {
+      const { data } = await supabase
+        .from('app_settings')
+        .select('value')
+        .eq('key', 'loyalty_min_amount')
+        .single();
+      if (data) {
+        setLoyaltyMinAmount(Number(data.value));
+        setLoyaltyMinAmountInput(data.value);
+      }
+    } catch (err) {
+      console.error('Error fetching loyalty min amount:', err);
+    }
+  };
+
+  const handleSaveLoyaltyMinAmount = async () => {
+    const val = Number(loyaltyMinAmountInput);
+    if (isNaN(val) || val < 0) {
+      toast({ title: 'Invalid amount', variant: 'destructive' });
+      return;
+    }
+    await supabase
+      .from('app_settings')
+      .update({ value: String(val) } as any)
+      .eq('key', 'loyalty_min_amount');
+    setLoyaltyMinAmount(val);
+    toast({ title: '✅ Minimum amount updated', description: `Loyalty stamps now require ₹${val}+ orders` });
+  };
+
+  const handleDeleteLoyaltyClaim = async (claimId: string) => {
+    const { error } = await supabase.from('loyalty_claims').delete().eq('id', claimId);
+    if (!error) {
+      setLoyaltyClaims(prev => prev.filter(c => c.id !== claimId));
+      toast({ title: 'Claim deleted' });
+    } else {
+      toast({ title: 'Error deleting claim', variant: 'destructive' });
+    }
+  };
+
+  const handleResetCustomerPoints = async (customerPhone: string, customerUserId?: string) => {
+    // To reset points, we insert a "redeemed" claim that accounts for remaining stamps
+    // This effectively zeros out their progress
+    const customerStamps: Record<string, { name: string; userId: string; stamps: number }> = {};
+    const redeemedPerUser: Record<string, number> = {};
+    loyaltyClaims.filter(c => c.is_redeemed).forEach(c => {
+      redeemedPerUser[c.customer_phone] = (redeemedPerUser[c.customer_phone] || 0) + 1;
+    });
+    orders.forEach(order => {
+      if ((order as any).loyalty_coupon_code) return;
+      if (order.total < loyaltyMinAmount) return;
+      const key = order.customer_phone;
+      if (!customerStamps[key]) {
+        customerStamps[key] = { name: order.customer_name, userId: order.user_id, stamps: 0 };
+      }
+      customerStamps[key].stamps += 1;
+    });
+    Object.keys(customerStamps).forEach(key => {
+      const redeemed = redeemedPerUser[key] || 0;
+      customerStamps[key].stamps = Math.max(0, customerStamps[key].stamps - (redeemed * 10));
+    });
+
+    const cust = customerStamps[customerPhone];
+    if (!cust || cust.stamps <= 0) return;
+
+    // Insert fake redeemed claims to zero out stamps
+    const cyclesNeeded = Math.ceil(cust.stamps / 10);
+    for (let i = 0; i < cyclesNeeded; i++) {
+      await supabase.from('loyalty_claims').insert({
+        user_id: cust.userId,
+        customer_name: cust.name,
+        customer_phone: customerPhone,
+        coupon_code: `RESET-${Date.now()}-${i}`,
+        stamps_completed: 10,
+        is_redeemed: true,
+      } as any);
+    }
+    await fetchLoyaltyClaims();
+    toast({ title: '🔄 Points reset', description: `${cust.name}'s loyalty points have been cleared` });
+  };
+
     try {
       const { data, error } = await supabase
         .from('requested_products')
