@@ -142,6 +142,8 @@ const SellerDashboard: React.FC = () => {
   const billRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
   const [userLoyaltyMap, setUserLoyaltyMap] = useState<Record<string, number>>({});
   const [loyaltyClaims, setLoyaltyClaims] = useState<any[]>([]);
+  const [loyaltyMinAmount, setLoyaltyMinAmount] = useState(200);
+  const [loyaltyMinAmountInput, setLoyaltyMinAmountInput] = useState('200');
 
   // Product form state
   const [productName, setProductName] = useState('');
@@ -193,6 +195,7 @@ const SellerDashboard: React.FC = () => {
       fetchRequestedProducts(),
       fetchCustomers(),
       fetchLoyaltyClaims(),
+      fetchLoyaltyMinAmount(),
     ]);
     setLoading(false);
   };
@@ -207,6 +210,87 @@ const SellerDashboard: React.FC = () => {
     } catch (err) {
       console.error('Error fetching loyalty claims:', err);
     }
+  };
+
+  const fetchLoyaltyMinAmount = async () => {
+    try {
+      const { data } = await supabase
+        .from('app_settings')
+        .select('value')
+        .eq('key', 'loyalty_min_amount')
+        .single();
+      if (data) {
+        setLoyaltyMinAmount(Number(data.value));
+        setLoyaltyMinAmountInput(data.value);
+      }
+    } catch (err) {
+      console.error('Error fetching loyalty min amount:', err);
+    }
+  };
+
+  const handleSaveLoyaltyMinAmount = async () => {
+    const val = Number(loyaltyMinAmountInput);
+    if (isNaN(val) || val < 0) {
+      toast({ title: 'Invalid amount', variant: 'destructive' });
+      return;
+    }
+    await supabase
+      .from('app_settings')
+      .update({ value: String(val) } as any)
+      .eq('key', 'loyalty_min_amount');
+    setLoyaltyMinAmount(val);
+    toast({ title: '✅ Minimum amount updated', description: `Loyalty stamps now require ₹${val}+ orders` });
+  };
+
+  const handleDeleteLoyaltyClaim = async (claimId: string) => {
+    const { error } = await supabase.from('loyalty_claims').delete().eq('id', claimId);
+    if (!error) {
+      setLoyaltyClaims(prev => prev.filter(c => c.id !== claimId));
+      toast({ title: 'Claim deleted' });
+    } else {
+      toast({ title: 'Error deleting claim', variant: 'destructive' });
+    }
+  };
+
+  const handleResetCustomerPoints = async (customerPhone: string, customerUserId?: string) => {
+    // To reset points, we insert a "redeemed" claim that accounts for remaining stamps
+    // This effectively zeros out their progress
+    const customerStamps: Record<string, { name: string; userId: string; stamps: number }> = {};
+    const redeemedPerUser: Record<string, number> = {};
+    loyaltyClaims.filter(c => c.is_redeemed).forEach(c => {
+      redeemedPerUser[c.customer_phone] = (redeemedPerUser[c.customer_phone] || 0) + 1;
+    });
+    orders.forEach(order => {
+      if ((order as any).loyalty_coupon_code) return;
+      if (order.total < loyaltyMinAmount) return;
+      const key = order.customer_phone;
+      if (!customerStamps[key]) {
+        customerStamps[key] = { name: order.customer_name, userId: order.user_id, stamps: 0 };
+      }
+      customerStamps[key].stamps += 1;
+    });
+    Object.keys(customerStamps).forEach(key => {
+      const redeemed = redeemedPerUser[key] || 0;
+      customerStamps[key].stamps = Math.max(0, customerStamps[key].stamps - (redeemed * 10));
+    });
+
+    const cust = customerStamps[customerPhone];
+    if (!cust || cust.stamps <= 0) return;
+
+    // Insert fake redeemed claims to zero out stamps
+    const cyclesNeeded = Math.ceil(cust.stamps / 10);
+    for (let i = 0; i < cyclesNeeded; i++) {
+      await supabase.from('loyalty_claims').insert({
+        user_id: cust.userId,
+        customer_name: cust.name,
+        customer_phone: customerPhone,
+        coupon_code: `RESET-${Date.now()}-${i}`,
+        stamps_completed: 10,
+        is_redeemed: true,
+      } as any);
+    }
+    await fetchLoyaltyClaims();
+    toast({ title: '🔄 Points reset', description: `${cust.name}'s loyalty points have been cleared` });
   };
 
   const fetchRequestedProducts = async () => {
@@ -260,7 +344,7 @@ const SellerDashboard: React.FC = () => {
       // Compute loyalty stamps per user (only orders with total >= 200)
       const loyaltyMap: Record<string, number> = {};
       (data || []).forEach(order => {
-        if (order.total >= 200) {
+        if (order.total >= loyaltyMinAmount) {
           loyaltyMap[order.user_id] = (loyaltyMap[order.user_id] || 0) + 1;
         }
       });
@@ -1376,24 +1460,52 @@ const SellerDashboard: React.FC = () => {
 
           {/* Loyalty Claims Tab */}
           <TabsContent value="loyalty" className="space-y-6">
-            {/* Summary Cards */}
+            {/* Loyalty Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="w-5 h-5 text-primary" />
+                  Loyalty Settings
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-end gap-3">
+                  <div className="flex-1">
+                    <Label className="text-sm font-medium">Minimum Order Amount for Loyalty Stamp (₹)</Label>
+                    <Input
+                      type="number"
+                      value={loyaltyMinAmountInput}
+                      onChange={(e) => setLoyaltyMinAmountInput(e.target.value)}
+                      className="mt-1"
+                      placeholder="e.g. 200"
+                    />
+                  </div>
+                  <Button onClick={handleSaveLoyaltyMinAmount} size="sm">
+                    Save
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Orders must be ₹{loyaltyMinAmount} or more to earn a loyalty stamp.
+                </p>
+              </CardContent>
+            </Card>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <Card className="p-3 text-center">
                 <p className="text-2xl font-bold text-primary">{loyaltyClaims.length}</p>
                 <p className="text-xs text-muted-foreground">Total Claims</p>
               </Card>
               <Card className="p-3 text-center">
-                <p className="text-2xl font-bold text-green-600">{loyaltyClaims.filter(c => c.is_redeemed).length}</p>
+                <p className="text-2xl font-bold text-primary">{loyaltyClaims.filter(c => c.is_redeemed).length}</p>
                 <p className="text-xs text-muted-foreground">Redeemed</p>
               </Card>
               <Card className="p-3 text-center">
-                <p className="text-2xl font-bold text-orange-500">{loyaltyClaims.filter(c => !c.is_redeemed).length}</p>
+                <p className="text-2xl font-bold text-primary">{loyaltyClaims.filter(c => !c.is_redeemed).length}</p>
                 <p className="text-xs text-muted-foreground">Pending</p>
               </Card>
               <Card className="p-3 text-center">
                 <p className="text-2xl font-bold text-primary">{(() => {
                   const customerStamps: Record<string, number> = {};
-                  orders.forEach(o => { if (o.total >= 200 && !(o as any).loyalty_coupon_code) customerStamps[o.customer_phone] = (customerStamps[o.customer_phone] || 0) + 1; });
+                  orders.forEach(o => { if (o.total >= loyaltyMinAmount && !(o as any).loyalty_coupon_code) customerStamps[o.customer_phone] = (customerStamps[o.customer_phone] || 0) + 1; });
                   return Object.values(customerStamps).filter(s => s % 10 > 0).length;
                 })()}</p>
                 <p className="text-xs text-muted-foreground">In Progress</p>
@@ -1423,6 +1535,7 @@ const SellerDashboard: React.FC = () => {
                           <TableHead>Stamps</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead>Bill</TableHead>
+                          <TableHead>Action</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1467,6 +1580,25 @@ const SellerDashboard: React.FC = () => {
                                   </Button>
                                 )}
                               </TableCell>
+                              <TableCell>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10">
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Delete this claim?</AlertDialogTitle>
+                                      <AlertDialogDescription>This will permanently remove this loyalty claim record.</AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => handleDeleteLoyaltyClaim(claim.id)}>Delete</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </TableCell>
                             </TableRow>
                           );
                         })}
@@ -1494,7 +1626,7 @@ const SellerDashboard: React.FC = () => {
                   const customerStamps: Record<string, { name: string; phone: string; stamps: number }> = {};
                   orders.forEach(order => {
                     if ((order as any).loyalty_coupon_code) return;
-                    if (order.total < 200) return;
+                    if (order.total < loyaltyMinAmount) return;
                     const key = order.customer_phone;
                     if (!customerStamps[key]) {
                       customerStamps[key] = { name: order.customer_name, phone: order.customer_phone, stamps: 0 };
@@ -1536,6 +1668,23 @@ const SellerDashboard: React.FC = () => {
                             <Badge variant="secondary" className="font-mono text-xs">
                               {cust.stamps}/10
                             </Badge>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/10">
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Reset {cust.name}'s points?</AlertDialogTitle>
+                                  <AlertDialogDescription>This will clear all loyalty stamps for this customer. They will start from 0.</AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleResetCustomerPoints(cust.phone)}>Reset Points</AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           </div>
                         </div>
                       ))}

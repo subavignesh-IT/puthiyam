@@ -40,8 +40,10 @@ const StampCard: React.FC = () => {
   const [userPhone, setUserPhone] = useState('');
   const [loyaltyEnabled, setLoyaltyEnabled] = useState(true);
   const [hasPendingClaim, setHasPendingClaim] = useState(false);
+  const [minAmount, setMinAmount] = useState(200);
 
   useEffect(() => {
+    fetchMinAmount();
     if (user) {
       fetchUserProfile();
       fetchOrderCount();
@@ -50,6 +52,17 @@ const StampCard: React.FC = () => {
       setLoading(false);
     }
   }, [user]);
+
+  const fetchMinAmount = async () => {
+    try {
+      const { data } = await supabase
+        .from('app_settings')
+        .select('value')
+        .eq('key', 'loyalty_min_amount')
+        .single();
+      if (data) setMinAmount(Number(data.value));
+    } catch {}
+  };
 
   const checkPendingClaim = async () => {
     const { data } = await supabase
@@ -81,7 +94,7 @@ const StampCard: React.FC = () => {
         .from('orders')
         .select('id, total, loyalty_coupon_code')
         .eq('user_id', user!.id)
-        .gte('total', 200);
+        .gte('total', minAmount);
 
       if (!error && data) {
         // Count redeemed claims to know how many full cycles completed
@@ -264,7 +277,7 @@ const StampCard: React.FC = () => {
                 ? '🎟️ You have a pending reward! Apply your coupon code below.'
                 : isComplete
                   ? '🎉 You earned a special offer on your next order!'
-                  : `Complete ${10 - stamps} more order${10 - stamps !== 1 ? 's' : ''} (₹200+) to unlock a special offer!`}
+                  : `Complete ${10 - stamps} more order${10 - stamps !== 1 ? 's' : ''} (₹${minAmount}+) to unlock a special offer!`}
             </p>
 
             <TooltipProvider delayDuration={200}>
@@ -379,7 +392,7 @@ const StampCard: React.FC = () => {
             </div>
             <div className="space-y-3 text-sm">
               {[
-                { emoji: '🛒', text: 'Place an order of ₹200 or more to earn a stamp' },
+                { emoji: '🛒', text: `Place an order of ₹${minAmount} or more to earn a stamp` },
                 { emoji: '🎯', text: 'Collect 10 stamps to complete the card' },
                 { emoji: '🎟️', text: 'Get a unique coupon code on completion!' },
                 { emoji: '🎁', text: 'Apply coupon for a special offer on your next order!' },
