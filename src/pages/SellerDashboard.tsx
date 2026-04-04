@@ -1535,6 +1535,7 @@ const SellerDashboard: React.FC = () => {
                           <TableHead>Stamps</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead>Bill</TableHead>
+                          <TableHead>Action</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
