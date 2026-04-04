@@ -1489,22 +1489,23 @@ const SellerDashboard: React.FC = () => {
                 </p>
               </CardContent>
             </Card>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <Card className="p-3 text-center">
                 <p className="text-2xl font-bold text-primary">{loyaltyClaims.length}</p>
                 <p className="text-xs text-muted-foreground">Total Claims</p>
               </Card>
               <Card className="p-3 text-center">
-                <p className="text-2xl font-bold text-green-600">{loyaltyClaims.filter(c => c.is_redeemed).length}</p>
+                <p className="text-2xl font-bold text-primary">{loyaltyClaims.filter(c => c.is_redeemed).length}</p>
                 <p className="text-xs text-muted-foreground">Redeemed</p>
               </Card>
               <Card className="p-3 text-center">
-                <p className="text-2xl font-bold text-orange-500">{loyaltyClaims.filter(c => !c.is_redeemed).length}</p>
+                <p className="text-2xl font-bold text-primary">{loyaltyClaims.filter(c => !c.is_redeemed).length}</p>
                 <p className="text-xs text-muted-foreground">Pending</p>
               </Card>
               <Card className="p-3 text-center">
                 <p className="text-2xl font-bold text-primary">{(() => {
                   const customerStamps: Record<string, number> = {};
-                  orders.forEach(o => { if (o.total >= 200 && !(o as any).loyalty_coupon_code) customerStamps[o.customer_phone] = (customerStamps[o.customer_phone] || 0) + 1; });
+                  orders.forEach(o => { if (o.total >= loyaltyMinAmount && !(o as any).loyalty_coupon_code) customerStamps[o.customer_phone] = (customerStamps[o.customer_phone] || 0) + 1; });
                   return Object.values(customerStamps).filter(s => s % 10 > 0).length;
                 })()}</p>
                 <p className="text-xs text-muted-foreground">In Progress</p>
