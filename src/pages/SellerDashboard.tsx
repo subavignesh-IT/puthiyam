@@ -1460,8 +1460,35 @@ const SellerDashboard: React.FC = () => {
 
           {/* Loyalty Claims Tab */}
           <TabsContent value="loyalty" className="space-y-6">
-            {/* Summary Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {/* Loyalty Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="w-5 h-5 text-primary" />
+                  Loyalty Settings
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-end gap-3">
+                  <div className="flex-1">
+                    <Label className="text-sm font-medium">Minimum Order Amount for Loyalty Stamp (₹)</Label>
+                    <Input
+                      type="number"
+                      value={loyaltyMinAmountInput}
+                      onChange={(e) => setLoyaltyMinAmountInput(e.target.value)}
+                      className="mt-1"
+                      placeholder="e.g. 200"
+                    />
+                  </div>
+                  <Button onClick={handleSaveLoyaltyMinAmount} size="sm">
+                    Save
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Orders must be ₹{loyaltyMinAmount} or more to earn a loyalty stamp.
+                </p>
+              </CardContent>
+            </Card>
               <Card className="p-3 text-center">
                 <p className="text-2xl font-bold text-primary">{loyaltyClaims.length}</p>
                 <p className="text-xs text-muted-foreground">Total Claims</p>
