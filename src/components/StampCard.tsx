@@ -93,13 +93,15 @@ const StampCard: React.FC = () => {
     if (data && data.loyalty_enabled === false) setLoyaltyEnabled(false);
   };
 
-  const fetchOrderCount = async () => {
+  const fetchOrderCount = () => fetchOrderCountWithAmount(minAmount);
+
+  const fetchOrderCountWithAmount = async (amt: number) => {
     try {
       const { data, error } = await supabase
         .from('orders')
         .select('id, total, loyalty_coupon_code')
         .eq('user_id', user!.id)
-        .gte('total', minAmount);
+        .gte('total', amt);
 
       if (!error && data) {
         // Count redeemed claims to know how many full cycles completed
