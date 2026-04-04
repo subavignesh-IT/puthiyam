@@ -94,7 +94,7 @@ const StampCard: React.FC = () => {
         .from('orders')
         .select('id, total, loyalty_coupon_code')
         .eq('user_id', user!.id)
-        .gte('total', 200);
+        .gte('total', minAmount);
 
       if (!error && data) {
         // Count redeemed claims to know how many full cycles completed
