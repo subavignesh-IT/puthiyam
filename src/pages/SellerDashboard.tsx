@@ -293,6 +293,7 @@ const SellerDashboard: React.FC = () => {
     toast({ title: '🔄 Points reset', description: `${cust.name}'s loyalty points have been cleared` });
   };
 
+  const fetchRequestedProducts = async () => {
     try {
       const { data, error } = await supabase
         .from('requested_products')
