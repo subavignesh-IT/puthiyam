@@ -195,6 +195,7 @@ const SellerDashboard: React.FC = () => {
       fetchRequestedProducts(),
       fetchCustomers(),
       fetchLoyaltyClaims(),
+      fetchLoyaltyMinAmount(),
     ]);
     setLoading(false);
   };
