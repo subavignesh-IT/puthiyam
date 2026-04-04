@@ -43,6 +43,7 @@ const StampCard: React.FC = () => {
   const [minAmount, setMinAmount] = useState(200);
 
   useEffect(() => {
+    fetchMinAmount();
     if (user) {
       fetchUserProfile();
       fetchOrderCount();
@@ -51,6 +52,17 @@ const StampCard: React.FC = () => {
       setLoading(false);
     }
   }, [user]);
+
+  const fetchMinAmount = async () => {
+    try {
+      const { data } = await supabase
+        .from('app_settings')
+        .select('value')
+        .eq('key', 'loyalty_min_amount')
+        .single();
+      if (data) setMinAmount(Number(data.value));
+    } catch {}
+  };
 
   const checkPendingClaim = async () => {
     const { data } = await supabase
