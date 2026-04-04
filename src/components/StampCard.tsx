@@ -277,7 +277,7 @@ const StampCard: React.FC = () => {
                 ? '🎟️ You have a pending reward! Apply your coupon code below.'
                 : isComplete
                   ? '🎉 You earned a special offer on your next order!'
-                  : `Complete ${10 - stamps} more order${10 - stamps !== 1 ? 's' : ''} (₹200+) to unlock a special offer!`}
+                  : `Complete ${10 - stamps} more order${10 - stamps !== 1 ? 's' : ''} (₹${minAmount}+) to unlock a special offer!`}
             </p>
 
             <TooltipProvider delayDuration={200}>
