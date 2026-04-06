@@ -1574,9 +1574,23 @@ const SellerDashboard: React.FC = () => {
                                 </div>
                               </TableCell>
                               <TableCell>
-                                <Badge variant={claim.is_redeemed ? 'default' : 'secondary'}>
-                                  {claim.is_redeemed ? '✅ Redeemed' : '⏳ Pending'}
+                              <Badge variant={claim.is_redeemed ? 'default' : 'secondary'}>
+                                  {claim.is_redeemed ? '✅ Used' : '⏳ Pending'}
                                 </Badge>
+                                {!claim.is_redeemed && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="mt-1 text-xs"
+                                    onClick={async () => {
+                                      await supabase.from('loyalty_claims').update({ is_redeemed: true }).eq('id', claim.id);
+                                      setLoyaltyClaims(prev => prev.map(c => c.id === claim.id ? { ...c, is_redeemed: true } : c));
+                                      toast({ title: '✅ Marked as used', description: `Coupon ${claim.coupon_code} marked as redeemed` });
+                                    }}
+                                  >
+                                    Mark Used
+                                  </Button>
+                                )}
                               </TableCell>
                               <TableCell>
                                 {linkedOrder && (
