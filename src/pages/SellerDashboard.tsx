@@ -315,10 +315,19 @@ const SellerDashboard: React.FC = () => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('user_id, full_name, phone, address, created_at, loyalty_enabled')
+        .select('user_id, full_name, phone, address, created_at, loyalty_enabled, is_blocked, theme')
         .order('created_at', { ascending: false });
       if (!error && data) {
-        setCustomers(data);
+        setCustomers(data as any);
+      }
+      // Fetch roles
+      const { data: rolesData } = await supabase
+        .from('user_roles')
+        .select('user_id, role');
+      if (rolesData) {
+        const roleMap: Record<string, string> = {};
+        rolesData.forEach((r: any) => { roleMap[r.user_id] = r.role; });
+        setCustomerRoles(roleMap);
       }
     } catch (err) {
       console.error('Error fetching customers:', err);
