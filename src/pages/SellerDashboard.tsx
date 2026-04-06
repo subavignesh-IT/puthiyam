@@ -41,7 +41,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Package, Plus, Trash2, Upload, ShoppingCart, Edit, Tag, Percent, Settings, Clock, X, Share2, BarChart3, Bell, Download, DollarSign, Users, Gift } from 'lucide-react';
+import { Package, Plus, Trash2, Upload, ShoppingCart, Edit, Tag, Percent, Settings, Clock, X, Share2, BarChart3, Bell, Download, DollarSign, Users, Gift, Ban, Shield, ShieldCheck } from 'lucide-react';
 import { DbProduct, DbProductVariant, DbProductImage } from '@/types/product';
 import SalesReportDashboard from '@/components/SalesReportDashboard';
 import OrderBillImage from '@/components/OrderBillImage';
