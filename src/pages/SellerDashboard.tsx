@@ -2291,7 +2291,7 @@ const SellerDashboard: React.FC = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Users className="w-5 h-5" />
-                  All Customers ({customers.length})
+                  All Users & Sellers ({customers.length})
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -2305,24 +2305,51 @@ const SellerDashboard: React.FC = () => {
                           <TableHead>#</TableHead>
                           <TableHead>Name</TableHead>
                           <TableHead>Phone</TableHead>
-                          <TableHead>Address</TableHead>
-                          <TableHead>Joined</TableHead>
+                          <TableHead>Role</TableHead>
                           <TableHead>Orders</TableHead>
                           <TableHead>Loyalty</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {customers.map((customer, idx) => {
                           const customerOrders = orders.filter(o => o.user_id === customer.user_id);
                           const totalSpent = customerOrders.reduce((sum, o) => sum + o.total, 0);
-                          const loyaltyEnabled = (customer as any).loyalty_enabled !== false;
+                          const loyaltyEnabled = customer.loyalty_enabled !== false;
+                          const role = customerRoles[customer.user_id] || 'user';
+                          const isBlocked = customer.is_blocked || false;
                           return (
-                            <TableRow key={customer.user_id}>
+                            <TableRow key={customer.user_id} className={isBlocked ? 'opacity-50' : ''}>
                               <TableCell className="font-medium">{idx + 1}</TableCell>
-                              <TableCell>{customer.full_name || 'N/A'}</TableCell>
+                              <TableCell>
+                                <div>
+                                  <p className="font-medium">{customer.full_name || 'N/A'}</p>
+                                  <p className="text-xs text-muted-foreground">{customer.phone || 'N/A'}</p>
+                                </div>
+                              </TableCell>
                               <TableCell>{customer.phone || 'N/A'}</TableCell>
-                              <TableCell className="max-w-[200px] truncate">{customer.address || 'N/A'}</TableCell>
-                              <TableCell>{new Date(customer.created_at).toLocaleDateString()}</TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <Badge variant={role === 'admin' ? 'default' : role === 'seller' ? 'secondary' : 'outline'} className="text-xs">
+                                    {role === 'admin' ? '👑 Admin' : role === 'seller' ? '🏪 Seller' : '👤 User'}
+                                  </Badge>
+                                  {role !== 'admin' && (
+                                    <Switch
+                                      checked={role === 'seller'}
+                                      onCheckedChange={async (checked) => {
+                                        if (checked) {
+                                          await supabase.from('user_roles').upsert({ user_id: customer.user_id, role: 'seller' } as any, { onConflict: 'user_id,role' });
+                                        } else {
+                                          await supabase.from('user_roles').delete().eq('user_id', customer.user_id).eq('role', 'seller');
+                                        }
+                                        setCustomerRoles(prev => ({ ...prev, [customer.user_id]: checked ? 'seller' : 'user' }));
+                                        toast({ title: checked ? '🏪 Seller access granted' : '👤 Reverted to user' });
+                                      }}
+                                    />
+                                  )}
+                                </div>
+                              </TableCell>
                               <TableCell>
                                 <div className="text-sm">
                                   <span className="font-medium">{customerOrders.length}</span> orders
@@ -2339,15 +2366,60 @@ const SellerDashboard: React.FC = () => {
                                       .eq('user_id', customer.user_id);
                                     if (!error) {
                                       setCustomers(prev => prev.map(c =>
-                                        c.user_id === customer.user_id ? { ...c, loyalty_enabled: checked } as any : c
+                                        c.user_id === customer.user_id ? { ...c, loyalty_enabled: checked } : c
                                       ));
-                                      toast({
-                                        title: checked ? 'Loyalty Enabled' : 'Loyalty Disabled',
-                                        description: `Loyalty card ${checked ? 'enabled' : 'disabled'} for ${customer.full_name || 'customer'}`,
-                                      });
+                                      toast({ title: checked ? 'Loyalty Enabled' : 'Loyalty Disabled' });
                                     }
                                   }}
                                 />
+                              </TableCell>
+                              <TableCell>
+                                {isBlocked ? (
+                                  <Badge variant="destructive" className="text-xs">🚫 Blocked</Badge>
+                                ) : (
+                                  <Badge variant="outline" className="text-xs text-primary">✅ Active</Badge>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-1">
+                                  {/* Block/Unblock */}
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className={`h-8 w-8 ${isBlocked ? 'text-primary hover:bg-primary/10' : 'text-destructive hover:bg-destructive/10'}`}
+                                    onClick={async () => {
+                                      await supabase.from('profiles').update({ is_blocked: !isBlocked } as any).eq('user_id', customer.user_id);
+                                      setCustomers(prev => prev.map(c => c.user_id === customer.user_id ? { ...c, is_blocked: !isBlocked } : c));
+                                      toast({ title: isBlocked ? '✅ User unblocked' : '🚫 User blocked' });
+                                    }}
+                                    title={isBlocked ? 'Unblock' : 'Block'}
+                                  >
+                                    {isBlocked ? <ShieldCheck className="w-4 h-4" /> : <Ban className="w-4 h-4" />}
+                                  </Button>
+                                  {/* Delete */}
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10">
+                                        <Trash2 className="w-4 h-4" />
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>Delete {customer.full_name || 'this user'}?</AlertDialogTitle>
+                                        <AlertDialogDescription>This will remove their profile. They will need to sign up again.</AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction onClick={async () => {
+                                          await supabase.from('profiles').delete().eq('user_id', customer.user_id);
+                                          await supabase.from('user_roles').delete().eq('user_id', customer.user_id);
+                                          setCustomers(prev => prev.filter(c => c.user_id !== customer.user_id));
+                                          toast({ title: '🗑️ User deleted' });
+                                        }}>Delete</AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                </div>
                               </TableCell>
                             </TableRow>
                           );
