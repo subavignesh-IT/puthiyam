@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Search, User, LogOut, ClipboardList, ChevronDown, Store } from 'lucide-react';
+import ThemeSwitcher from '@/components/ThemeSwitcher';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -111,7 +112,8 @@ const Header: React.FC<HeaderProps> = ({ onSearch, searchQuery = '' }) => {
           )}
 
           {/* User Section */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <ThemeSwitcher />
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
