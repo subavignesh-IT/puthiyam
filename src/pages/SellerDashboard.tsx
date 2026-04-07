@@ -172,12 +172,22 @@ const SellerDashboard: React.FC = () => {
   const [newPackingType, setNewPackingType] = useState('');
 
   useEffect(() => {
+    const checkSellerRole = async () => {
+      if (user) {
+        const { data } = await supabase.rpc('has_role', { _user_id: user.id, _role: 'seller' as any });
+        setIsSeller(data === true);
+      }
+    };
+    checkSellerRole();
+  }, [user]);
+
+  useEffect(() => {
     if (!authLoading && !adminLoading) {
       if (!user) {
         navigate('/login');
         return;
       }
-      if (!isAdmin) {
+      if (!isAdmin && !isSeller) {
         toast({
           title: "Access Denied",
           description: "You don't have seller permissions.",
@@ -188,7 +198,7 @@ const SellerDashboard: React.FC = () => {
       }
       fetchData();
     }
-  }, [user, authLoading, isAdmin, adminLoading, navigate]);
+  }, [user, authLoading, isAdmin, adminLoading, isSeller, navigate]);
 
   const fetchData = async () => {
     await Promise.all([
