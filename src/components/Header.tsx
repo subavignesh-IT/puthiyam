@@ -157,6 +157,13 @@ const Header: React.FC<HeaderProps> = ({ onSearch, searchQuery = '' }) => {
                   )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem 
+                    onClick={() => navigate('/login')}
+                    className="cursor-pointer hover:bg-muted transition-colors"
+                  >
+                    <User className="w-4 h-4 mr-2" />
+                    Edit Profile
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
                     onClick={handleSignOut}
                     className="cursor-pointer text-destructive hover:bg-destructive/10 transition-colors"
                   >
