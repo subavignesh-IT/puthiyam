@@ -1704,15 +1704,33 @@ const SellerDashboard: React.FC = () => {
                   loyaltyClaims.filter(c => c.is_redeemed).forEach(c => {
                     redeemedPerUser[c.customer_phone] = (redeemedPerUser[c.customer_phone] || 0) + 1;
                   });
-                  const customerStamps: Record<string, { name: string; phone: string; stamps: number }> = {};
+                  const customerStamps: Record<string, { name: string; phone: string; userId: string; stamps: number }> = {};
                   orders.forEach(order => {
                     if ((order as any).loyalty_coupon_code) return;
                     if (order.total < loyaltyMinAmount) return;
                     const key = order.customer_phone;
                     if (!customerStamps[key]) {
-                      customerStamps[key] = { name: order.customer_name, phone: order.customer_phone, stamps: 0 };
+                      customerStamps[key] = { name: order.customer_name, phone: order.customer_phone, userId: order.user_id, stamps: 0 };
                     }
                     customerStamps[key].stamps += 1;
+                  });
+                  // Account for manual adjustments
+                  loyaltyClaims.forEach(c => {
+                    if (c.stamps_completed === -1 && c.is_redeemed) {
+                      // manual add
+                      const key = c.customer_phone;
+                      if (!customerStamps[key]) {
+                        customerStamps[key] = { name: c.customer_name, phone: c.customer_phone, userId: c.user_id, stamps: 0 };
+                      }
+                      customerStamps[key].stamps += 1;
+                    } else if (c.stamps_completed === -2 && c.is_redeemed) {
+                      // manual subtract
+                      const key = c.customer_phone;
+                      if (customerStamps[key]) {
+                        customerStamps[key].stamps = Math.max(0, customerStamps[key].stamps - 1);
+                      }
+                    }
+                  });
                   });
                   // Subtract redeemed cycles
                   Object.keys(customerStamps).forEach(key => {
