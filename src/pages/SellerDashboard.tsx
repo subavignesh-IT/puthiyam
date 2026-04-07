@@ -2439,24 +2439,60 @@ const SellerDashboard: React.FC = () => {
                               </TableCell>
                               <TableCell>{customer.phone || 'N/A'}</TableCell>
                               <TableCell>
-                                <div className="flex items-center gap-2">
-                                  <Badge variant={role === 'admin' ? 'default' : role === 'seller' ? 'secondary' : 'outline'} className="text-xs">
+                                <div className="flex flex-col gap-1">
+                                  <Badge variant={role === 'admin' ? 'default' : role === 'seller' ? 'secondary' : 'outline'} className="text-xs w-fit">
                                     {role === 'admin' ? '👑 Admin' : role === 'seller' ? '🏪 Seller' : '👤 User'}
                                   </Badge>
-                                  {role !== 'admin' && (
-                                    <Switch
-                                      checked={role === 'seller'}
-                                      onCheckedChange={async (checked) => {
-                                        if (checked) {
-                                          await supabase.from('user_roles').upsert({ user_id: customer.user_id, role: 'seller' } as any, { onConflict: 'user_id,role' });
-                                        } else {
-                                          await supabase.from('user_roles').delete().eq('user_id', customer.user_id).eq('role', 'seller');
-                                        }
-                                        setCustomerRoles(prev => ({ ...prev, [customer.user_id]: checked ? 'seller' : 'user' }));
-                                        toast({ title: checked ? '🏪 Seller access granted' : '👤 Reverted to user' });
-                                      }}
-                                    />
-                                  )}
+                                  <div className="flex items-center gap-2">
+                                    {role !== 'admin' && (
+                                      <>
+                                        <div className="flex items-center gap-1">
+                                          <Switch
+                                            checked={role === 'seller'}
+                                            onCheckedChange={async (checked) => {
+                                              if (checked) {
+                                                await supabase.from('user_roles').upsert({ user_id: customer.user_id, role: 'seller' } as any, { onConflict: 'user_id,role' });
+                                              } else {
+                                                await supabase.from('user_roles').delete().eq('user_id', customer.user_id).eq('role', 'seller');
+                                              }
+                                              setCustomerRoles(prev => ({ ...prev, [customer.user_id]: checked ? 'seller' : 'user' }));
+                                              toast({ title: checked ? '🏪 Seller access granted' : '👤 Reverted to user' });
+                                            }}
+                                          />
+                                          <span className="text-[10px] text-muted-foreground">Seller</span>
+                                        </div>
+                                      </>
+                                    )}
+                                    {isOwner && role !== 'admin' && (
+                                      <div className="flex items-center gap-1">
+                                        <Switch
+                                          checked={false}
+                                          onCheckedChange={async (checked) => {
+                                            if (checked) {
+                                              await supabase.from('user_roles').upsert({ user_id: customer.user_id, role: 'admin' } as any, { onConflict: 'user_id,role' });
+                                              setCustomerRoles(prev => ({ ...prev, [customer.user_id]: 'admin' }));
+                                              toast({ title: '👑 Admin access granted' });
+                                            }
+                                          }}
+                                        />
+                                        <span className="text-[10px] text-muted-foreground">Admin</span>
+                                      </div>
+                                    )}
+                                    {isOwner && role === 'admin' && customer.user_id !== user?.id && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-6 text-xs text-destructive"
+                                        onClick={async () => {
+                                          await supabase.from('user_roles').delete().eq('user_id', customer.user_id).eq('role', 'admin');
+                                          setCustomerRoles(prev => ({ ...prev, [customer.user_id]: 'user' }));
+                                          toast({ title: '👤 Admin access revoked' });
+                                        }}
+                                      >
+                                        Remove Admin
+                                      </Button>
+                                    )}
+                                  </div>
                                 </div>
                               </TableCell>
                               <TableCell>
