@@ -24,29 +24,31 @@ const Header: React.FC<HeaderProps> = ({ onSearch, searchQuery = '' }) => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isSeller, setIsSeller] = useState(false);
 
   useEffect(() => {
-    const checkAdminRole = async () => {
+    const checkRoles = async () => {
       if (!user) {
         setIsAdmin(false);
+        setIsSeller(false);
         return;
       }
 
       try {
-        const { data, error } = await supabase
-          .rpc('has_role', { _user_id: user.id, _role: 'admin' });
+        const [adminRes, sellerRes] = await Promise.all([
+          supabase.rpc('has_role', { _user_id: user.id, _role: 'admin' as any }),
+          supabase.rpc('has_role', { _user_id: user.id, _role: 'seller' as any }),
+        ]);
 
-        if (!error && data === true) {
-          setIsAdmin(true);
-        } else {
-          setIsAdmin(false);
-        }
-      } catch (error) {
+        setIsAdmin(adminRes.data === true);
+        setIsSeller(sellerRes.data === true);
+      } catch {
         setIsAdmin(false);
+        setIsSeller(false);
       }
     };
 
-    checkAdminRole();
+    checkRoles();
   }, [user]);
 
   const handleSignOut = async () => {
