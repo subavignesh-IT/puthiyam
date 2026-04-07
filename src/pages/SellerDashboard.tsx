@@ -379,14 +379,17 @@ const SellerDashboard: React.FC = () => {
 
   const fetchProducts = async () => {
     try {
-      const { data: productsData, error: productsError } = await supabase
-        .from('products')
-        .select('*')
-        .order('created_at', { ascending: false });
+      let query = supabase.from('products').select('*').order('created_at', { ascending: false });
+      
+      // Sellers (non-admin) only see their own products
+      if (!isAdmin && isSeller && user) {
+        query = query.eq('seller_id', user.id);
+      }
+
+      const { data: productsData, error: productsError } = await query;
 
       if (productsError) throw productsError;
 
-      // Fetch variants and images for each product
       const productsWithDetails: ProductWithDetails[] = await Promise.all(
         (productsData || []).map(async (product) => {
           const [variantsRes, imagesRes] = await Promise.all([
