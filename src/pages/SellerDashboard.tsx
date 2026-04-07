@@ -307,6 +307,38 @@ const SellerDashboard: React.FC = () => {
     toast({ title: '🔄 Points reset', description: `${cust.name}'s loyalty points have been cleared` });
   };
 
+  const handleManualLoyaltyAdjust = async (customerPhone: string, customerName: string, customerUserId: string, increment: boolean) => {
+    if (increment) {
+      // Add a fake qualifying order equivalent by inserting a redeemed=false claim placeholder
+      // Actually, we add a "manual stamp" via a special order-like mechanism
+      // Simplest: insert a manual loyalty_claims entry with stamps_completed=1, is_redeemed=true to track
+      // Better approach: we'll use a special coupon code prefix "MANUAL-ADD"
+      await supabase.from('loyalty_claims').insert({
+        user_id: customerUserId,
+        customer_name: customerName,
+        customer_phone: customerPhone,
+        coupon_code: `MANUAL-ADD-${Date.now()}`,
+        stamps_completed: -1, // negative means manual add
+        is_redeemed: true,
+      } as any);
+      toast({ title: '➕ Point added', description: `Added 1 loyalty point for ${customerName}` });
+    } else {
+      // Remove a point by adding a manual subtract
+      await supabase.from('loyalty_claims').insert({
+        user_id: customerUserId,
+        customer_name: customerName,
+        customer_phone: customerPhone,
+        coupon_code: `MANUAL-SUB-${Date.now()}`,
+        stamps_completed: -2, // -2 means manual subtract
+        is_redeemed: true,
+      } as any);
+      toast({ title: '➖ Point removed', description: `Removed 1 loyalty point for ${customerName}` });
+    }
+    await fetchLoyaltyClaims();
+  };
+
+  const isOwner = user?.email === OWNER_EMAIL;
+
   const fetchRequestedProducts = async () => {
     try {
       const { data, error } = await supabase
