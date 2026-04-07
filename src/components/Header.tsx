@@ -148,7 +148,7 @@ const Header: React.FC<HeaderProps> = ({ onSearch, searchQuery = '' }) => {
                     <ClipboardList className="w-4 h-4 mr-2" />
                     My Orders
                   </DropdownMenuItem>
-                  {isAdmin && (
+                  {(isAdmin || isSeller) && (
                     <DropdownMenuItem 
                       onClick={() => navigate('/seller')}
                       className="cursor-pointer hover:bg-muted transition-colors"
