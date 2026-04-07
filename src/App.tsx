@@ -16,6 +16,7 @@ import Orders from "./pages/Orders";
 import ProductDetail from "./pages/ProductDetail";
 import Trending from "./pages/Trending";
 import SellerDashboard from "./pages/SellerDashboard";
+import SellerLogin from "./pages/SellerLogin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
