@@ -126,10 +126,13 @@ const MEASUREMENT_UNITS = [
   { value: 'count', label: 'Count/Pieces' },
 ];
 
+const OWNER_EMAIL = 'subavignesh33@gmail.com';
+
 const SellerDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { isAdmin, loading: adminLoading } = useAdmin();
+  const [isSeller, setIsSeller] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<ProductWithDetails[]>([]);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
