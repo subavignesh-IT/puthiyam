@@ -197,6 +197,12 @@ const Login: React.FC = () => {
                 Sign up
               </Link>
             </div>
+            <div className="mt-2 text-center text-sm">
+              <span className="text-muted-foreground">Are you a seller? </span>
+              <Link to="/seller-login" className="text-primary hover:underline font-medium">
+                Seller Login
+              </Link>
+            </div>
           </CardContent>
         </Card>
       </main>

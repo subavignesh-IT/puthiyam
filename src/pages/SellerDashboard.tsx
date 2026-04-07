@@ -41,7 +41,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Package, Plus, Trash2, Upload, ShoppingCart, Edit, Tag, Percent, Settings, Clock, X, Share2, BarChart3, Bell, Download, DollarSign, Users, Gift, Ban, Shield, ShieldCheck } from 'lucide-react';
+import { Package, Plus, Trash2, Upload, ShoppingCart, Edit, Tag, Percent, Settings, Clock, X, Share2, BarChart3, Bell, Download, DollarSign, Users, Gift, Ban, Shield, ShieldCheck, MinusCircle, PlusCircle, Crown, Store } from 'lucide-react';
 import { DbProduct, DbProductVariant, DbProductImage } from '@/types/product';
 import SalesReportDashboard from '@/components/SalesReportDashboard';
 import OrderBillImage from '@/components/OrderBillImage';
@@ -126,10 +126,13 @@ const MEASUREMENT_UNITS = [
   { value: 'count', label: 'Count/Pieces' },
 ];
 
+const OWNER_EMAIL = 'subavignesh33@gmail.com';
+
 const SellerDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { isAdmin, loading: adminLoading } = useAdmin();
+  const [isSeller, setIsSeller] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<ProductWithDetails[]>([]);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
@@ -169,12 +172,22 @@ const SellerDashboard: React.FC = () => {
   const [newPackingType, setNewPackingType] = useState('');
 
   useEffect(() => {
+    const checkSellerRole = async () => {
+      if (user) {
+        const { data } = await supabase.rpc('has_role', { _user_id: user.id, _role: 'seller' as any });
+        setIsSeller(data === true);
+      }
+    };
+    checkSellerRole();
+  }, [user]);
+
+  useEffect(() => {
     if (!authLoading && !adminLoading) {
       if (!user) {
         navigate('/login');
         return;
       }
-      if (!isAdmin) {
+      if (!isAdmin && !isSeller) {
         toast({
           title: "Access Denied",
           description: "You don't have seller permissions.",
@@ -185,7 +198,7 @@ const SellerDashboard: React.FC = () => {
       }
       fetchData();
     }
-  }, [user, authLoading, isAdmin, adminLoading, navigate]);
+  }, [user, authLoading, isAdmin, adminLoading, isSeller, navigate]);
 
   const fetchData = async () => {
     await Promise.all([
@@ -294,6 +307,38 @@ const SellerDashboard: React.FC = () => {
     toast({ title: '🔄 Points reset', description: `${cust.name}'s loyalty points have been cleared` });
   };
 
+  const handleManualLoyaltyAdjust = async (customerPhone: string, customerName: string, customerUserId: string, increment: boolean) => {
+    if (increment) {
+      // Add a fake qualifying order equivalent by inserting a redeemed=false claim placeholder
+      // Actually, we add a "manual stamp" via a special order-like mechanism
+      // Simplest: insert a manual loyalty_claims entry with stamps_completed=1, is_redeemed=true to track
+      // Better approach: we'll use a special coupon code prefix "MANUAL-ADD"
+      await supabase.from('loyalty_claims').insert({
+        user_id: customerUserId,
+        customer_name: customerName,
+        customer_phone: customerPhone,
+        coupon_code: `MANUAL-ADD-${Date.now()}`,
+        stamps_completed: -1, // negative means manual add
+        is_redeemed: true,
+      } as any);
+      toast({ title: '➕ Point added', description: `Added 1 loyalty point for ${customerName}` });
+    } else {
+      // Remove a point by adding a manual subtract
+      await supabase.from('loyalty_claims').insert({
+        user_id: customerUserId,
+        customer_name: customerName,
+        customer_phone: customerPhone,
+        coupon_code: `MANUAL-SUB-${Date.now()}`,
+        stamps_completed: -2, // -2 means manual subtract
+        is_redeemed: true,
+      } as any);
+      toast({ title: '➖ Point removed', description: `Removed 1 loyalty point for ${customerName}` });
+    }
+    await fetchLoyaltyClaims();
+  };
+
+  const isOwner = user?.email === OWNER_EMAIL;
+
   const fetchRequestedProducts = async () => {
     try {
       const { data, error } = await supabase
@@ -366,14 +411,17 @@ const SellerDashboard: React.FC = () => {
 
   const fetchProducts = async () => {
     try {
-      const { data: productsData, error: productsError } = await supabase
-        .from('products')
-        .select('*')
-        .order('created_at', { ascending: false });
+      let query = supabase.from('products').select('*').order('created_at', { ascending: false });
+      
+      // Sellers (non-admin) only see their own products
+      if (!isAdmin && isSeller && user) {
+        query = query.eq('seller_id', user.id);
+      }
+
+      const { data: productsData, error: productsError } = await query;
 
       if (productsError) throw productsError;
 
-      // Fetch variants and images for each product
       const productsWithDetails: ProductWithDetails[] = await Promise.all(
         (productsData || []).map(async (product) => {
           const [variantsRes, imagesRes] = await Promise.all([
@@ -1143,33 +1191,34 @@ const SellerDashboard: React.FC = () => {
         </section>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-8">
+          <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-9' : 'grid-cols-4'}`}>
             <TabsTrigger value="orders" className="flex items-center gap-1 text-xs">
               <ShoppingCart className="w-4 h-4" />
               <span className="hidden sm:inline">Orders</span>
             </TabsTrigger>
-            <TabsTrigger value="requests" className="flex items-center gap-1 text-xs">
-              <Bell className="w-4 h-4" />
-              <span className="hidden sm:inline">Requests</span>
-              {requestedProducts.length > 0 && (
-                <span className="bg-orange-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  {requestedProducts.length}
-                </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="loyalty" className="flex items-center gap-1 text-xs">
-              <Gift className="w-4 h-4" />
-              <span className="hidden sm:inline">Loyalty</span>
-              {orders.filter(o => (o as any).loyalty_coupon_code).length > 0 && (
-                <span className="bg-accent text-accent-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  {orders.filter(o => (o as any).loyalty_coupon_code).length}
-                </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="customers" className="flex items-center gap-1 text-xs">
-              <Users className="w-4 h-4" />
-              <span className="hidden sm:inline">Customers</span>
-            </TabsTrigger>
+            {isAdmin && (
+              <TabsTrigger value="requests" className="flex items-center gap-1 text-xs">
+                <Bell className="w-4 h-4" />
+                <span className="hidden sm:inline">Requests</span>
+                {requestedProducts.length > 0 && (
+                  <span className="bg-destructive text-destructive-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    {requestedProducts.length}
+                  </span>
+                )}
+              </TabsTrigger>
+            )}
+            {isAdmin && (
+              <TabsTrigger value="loyalty" className="flex items-center gap-1 text-xs">
+                <Gift className="w-4 h-4" />
+                <span className="hidden sm:inline">Loyalty</span>
+              </TabsTrigger>
+            )}
+            {isAdmin && (
+              <TabsTrigger value="customers" className="flex items-center gap-1 text-xs">
+                <Users className="w-4 h-4" />
+                <span className="hidden sm:inline">Customers</span>
+              </TabsTrigger>
+            )}
             <TabsTrigger value="products" className="flex items-center gap-1 text-xs">
               <Package className="w-4 h-4" />
               <span className="hidden sm:inline">Products</span>
@@ -1178,10 +1227,18 @@ const SellerDashboard: React.FC = () => {
               <Plus className="w-4 h-4" />
               <span className="hidden sm:inline">Add New</span>
             </TabsTrigger>
-            <TabsTrigger value="reports" className="flex items-center gap-1 text-xs">
-              <BarChart3 className="w-4 h-4" />
-              <span className="hidden sm:inline">Reports</span>
-            </TabsTrigger>
+            {isAdmin && (
+              <TabsTrigger value="seller-products" className="flex items-center gap-1 text-xs">
+                <Store className="w-4 h-4" />
+                <span className="hidden sm:inline">Sellers</span>
+              </TabsTrigger>
+            )}
+            {isAdmin && (
+              <TabsTrigger value="reports" className="flex items-center gap-1 text-xs">
+                <BarChart3 className="w-4 h-4" />
+                <span className="hidden sm:inline">Reports</span>
+              </TabsTrigger>
+            )}
             <TabsTrigger value="settings" className="flex items-center gap-1 text-xs">
               <Settings className="w-4 h-4" />
               <span className="hidden sm:inline">Settings</span>
@@ -1647,34 +1704,63 @@ const SellerDashboard: React.FC = () => {
                   loyaltyClaims.filter(c => c.is_redeemed).forEach(c => {
                     redeemedPerUser[c.customer_phone] = (redeemedPerUser[c.customer_phone] || 0) + 1;
                   });
-                  const customerStamps: Record<string, { name: string; phone: string; stamps: number }> = {};
+                  const customerStamps: Record<string, { name: string; phone: string; userId: string; stamps: number }> = {};
                   orders.forEach(order => {
                     if ((order as any).loyalty_coupon_code) return;
                     if (order.total < loyaltyMinAmount) return;
                     const key = order.customer_phone;
                     if (!customerStamps[key]) {
-                      customerStamps[key] = { name: order.customer_name, phone: order.customer_phone, stamps: 0 };
+                      customerStamps[key] = { name: order.customer_name, phone: order.customer_phone, userId: order.user_id, stamps: 0 };
                     }
                     customerStamps[key].stamps += 1;
+                  });
+                  // Account for manual adjustments
+                  loyaltyClaims.forEach(c => {
+                    if (c.stamps_completed === -1 && c.is_redeemed) {
+                      // manual add
+                      const key = c.customer_phone;
+                      if (!customerStamps[key]) {
+                        customerStamps[key] = { name: c.customer_name, phone: c.customer_phone, userId: c.user_id, stamps: 0 };
+                      }
+                      customerStamps[key].stamps += 1;
+                    } else if (c.stamps_completed === -2 && c.is_redeemed) {
+                      // manual subtract
+                      const key = c.customer_phone;
+                      if (customerStamps[key]) {
+                        customerStamps[key].stamps = Math.max(0, customerStamps[key].stamps - 1);
+                      }
+                    }
                   });
                   // Subtract redeemed cycles
                   Object.keys(customerStamps).forEach(key => {
                     const redeemed = redeemedPerUser[key] || 0;
                     customerStamps[key].stamps = Math.max(0, customerStamps[key].stamps - (redeemed * 10)) % 10;
                   });
-                  const pending = Object.values(customerStamps).filter(c => c.stamps > 0);
-                  if (pending.length === 0) {
+                  const pending = Object.values(customerStamps).filter(c => c.stamps > 0 || c.stamps === 0);
+                  const allCustomers = Object.values(customerStamps);
+                  if (allCustomers.length === 0) {
                     return <p className="text-center text-muted-foreground py-6">No customers with pending loyalty stamps</p>;
                   }
                   return (
                     <div className="grid gap-3">
-                      {pending.sort((a, b) => b.stamps - a.stamps).map((cust) => (
+                      {allCustomers.sort((a, b) => b.stamps - a.stamps).map((cust) => (
                         <div key={cust.phone} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/30 transition-colors">
                           <div className="flex-1 min-w-0">
                             <p className="font-semibold truncate">{cust.name}</p>
                             <p className="text-xs text-muted-foreground">{cust.phone}</p>
                           </div>
                           <div className="flex items-center gap-2 flex-shrink-0">
+                            {/* Manual +/- buttons */}
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-7 w-7 text-destructive hover:bg-destructive/10"
+                              onClick={() => handleManualLoyaltyAdjust(cust.phone, cust.name, cust.userId, false)}
+                              title="Remove 1 point"
+                              disabled={cust.stamps <= 0}
+                            >
+                              <MinusCircle className="w-3.5 h-3.5" />
+                            </Button>
                             <div className="flex gap-0.5">
                               {Array.from({ length: 10 }).map((_, i) => (
                                 <div
@@ -1689,6 +1775,15 @@ const SellerDashboard: React.FC = () => {
                                 </div>
                               ))}
                             </div>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-7 w-7 text-primary hover:bg-primary/10"
+                              onClick={() => handleManualLoyaltyAdjust(cust.phone, cust.name, cust.userId, true)}
+                              title="Add 1 point"
+                            >
+                              <PlusCircle className="w-3.5 h-3.5" />
+                            </Button>
                             <Badge variant="secondary" className="font-mono text-xs">
                               {cust.stamps}/10
                             </Badge>
@@ -2344,24 +2439,60 @@ const SellerDashboard: React.FC = () => {
                               </TableCell>
                               <TableCell>{customer.phone || 'N/A'}</TableCell>
                               <TableCell>
-                                <div className="flex items-center gap-2">
-                                  <Badge variant={role === 'admin' ? 'default' : role === 'seller' ? 'secondary' : 'outline'} className="text-xs">
+                                <div className="flex flex-col gap-1">
+                                  <Badge variant={role === 'admin' ? 'default' : role === 'seller' ? 'secondary' : 'outline'} className="text-xs w-fit">
                                     {role === 'admin' ? '👑 Admin' : role === 'seller' ? '🏪 Seller' : '👤 User'}
                                   </Badge>
-                                  {role !== 'admin' && (
-                                    <Switch
-                                      checked={role === 'seller'}
-                                      onCheckedChange={async (checked) => {
-                                        if (checked) {
-                                          await supabase.from('user_roles').upsert({ user_id: customer.user_id, role: 'seller' } as any, { onConflict: 'user_id,role' });
-                                        } else {
-                                          await supabase.from('user_roles').delete().eq('user_id', customer.user_id).eq('role', 'seller');
-                                        }
-                                        setCustomerRoles(prev => ({ ...prev, [customer.user_id]: checked ? 'seller' : 'user' }));
-                                        toast({ title: checked ? '🏪 Seller access granted' : '👤 Reverted to user' });
-                                      }}
-                                    />
-                                  )}
+                                  <div className="flex items-center gap-2">
+                                    {role !== 'admin' && (
+                                      <>
+                                        <div className="flex items-center gap-1">
+                                          <Switch
+                                            checked={role === 'seller'}
+                                            onCheckedChange={async (checked) => {
+                                              if (checked) {
+                                                await supabase.from('user_roles').upsert({ user_id: customer.user_id, role: 'seller' } as any, { onConflict: 'user_id,role' });
+                                              } else {
+                                                await supabase.from('user_roles').delete().eq('user_id', customer.user_id).eq('role', 'seller');
+                                              }
+                                              setCustomerRoles(prev => ({ ...prev, [customer.user_id]: checked ? 'seller' : 'user' }));
+                                              toast({ title: checked ? '🏪 Seller access granted' : '👤 Reverted to user' });
+                                            }}
+                                          />
+                                          <span className="text-[10px] text-muted-foreground">Seller</span>
+                                        </div>
+                                      </>
+                                    )}
+                                    {isOwner && role !== 'admin' && (
+                                      <div className="flex items-center gap-1">
+                                        <Switch
+                                          checked={false}
+                                          onCheckedChange={async (checked) => {
+                                            if (checked) {
+                                              await supabase.from('user_roles').upsert({ user_id: customer.user_id, role: 'admin' } as any, { onConflict: 'user_id,role' });
+                                              setCustomerRoles(prev => ({ ...prev, [customer.user_id]: 'admin' }));
+                                              toast({ title: '👑 Admin access granted' });
+                                            }
+                                          }}
+                                        />
+                                        <span className="text-[10px] text-muted-foreground">Admin</span>
+                                      </div>
+                                    )}
+                                    {isOwner && role === 'admin' && customer.user_id !== user?.id && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-6 text-xs text-destructive"
+                                        onClick={async () => {
+                                          await supabase.from('user_roles').delete().eq('user_id', customer.user_id).eq('role', 'admin');
+                                          setCustomerRoles(prev => ({ ...prev, [customer.user_id]: 'user' }));
+                                          toast({ title: '👤 Admin access revoked' });
+                                        }}
+                                      >
+                                        Remove Admin
+                                      </Button>
+                                    )}
+                                  </div>
                                 </div>
                               </TableCell>
                               <TableCell>
@@ -2442,6 +2573,138 @@ const SellerDashboard: React.FC = () => {
                     </Table>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Seller Products Tab - Admin only */}
+          <TabsContent value="seller-products" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Store className="w-5 h-5" />
+                  All Sellers' Products
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {(() => {
+                  // Group products by seller
+                  const sellerProducts: Record<string, { sellerId: string; products: ProductWithDetails[] }> = {};
+                  products.forEach(p => {
+                    if (!sellerProducts[p.seller_id]) {
+                      sellerProducts[p.seller_id] = { sellerId: p.seller_id, products: [] };
+                    }
+                    sellerProducts[p.seller_id].products.push(p);
+                  });
+                  
+                  const sellerEntries = Object.entries(sellerProducts);
+                  if (sellerEntries.length === 0) {
+                    return <p className="text-center text-muted-foreground py-8">No seller products</p>;
+                  }
+                  
+                  return (
+                    <div className="space-y-6">
+                      {sellerEntries.map(([sellerId, { products: sellerProds }]) => {
+                        const sellerProfile = customers.find(c => c.user_id === sellerId);
+                        const sellerRole = customerRoles[sellerId] || 'user';
+                        const isOwnProduct = sellerId === user?.id;
+                        
+                        return (
+                          <div key={sellerId} className="border rounded-lg p-4 space-y-3">
+                            <div className="flex items-center gap-2 mb-3">
+                              <Badge variant={sellerRole === 'admin' ? 'default' : 'secondary'}>
+                                {sellerRole === 'admin' ? '👑 Owner' : '🏪 Seller'}
+                              </Badge>
+                              <span className="font-semibold">{sellerProfile?.full_name || 'Unknown Seller'}</span>
+                              <span className="text-xs text-muted-foreground">({sellerProds.length} products)</span>
+                            </div>
+                            <div className="grid gap-3">
+                              {sellerProds.map(product => (
+                                <div key={product.id} className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+                                  <div className="w-16 h-16 flex-shrink-0">
+                                    {product.images[0] ? (
+                                      <img src={product.images[0].image_url} alt={product.name} className="w-full h-full object-cover rounded-md" />
+                                    ) : (
+                                      <div className="w-full h-full bg-muted rounded-md flex items-center justify-center">
+                                        <Package className="w-6 h-6 text-muted-foreground" />
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium truncate">{product.name}</p>
+                                    <p className="text-xs text-muted-foreground">{product.category} • ₹{product.base_price}</p>
+                                    {product.is_on_sale && (
+                                      <Badge variant="destructive" className="text-xs mt-1">
+                                        {product.discount_type === 'percentage' ? `${product.discount_amount}% OFF` : `₹${product.discount_amount} OFF`}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    {isOwner && !isOwnProduct && (
+                                      <>
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() => {
+                                            setEditingProduct(product);
+                                            setProductName(product.name);
+                                            setProductDescription(product.description || '');
+                                            setProductCategory(product.category);
+                                            setBasePrice(String(product.base_price));
+                                            setMeasurementUnit(product.measurement_unit);
+                                            setPackingType(product.packing_type || 'pouch');
+                                            setIsOnSale(product.is_on_sale);
+                                            setDiscountAmount(String(product.discount_amount));
+                                            setDiscountType((product.discount_type as 'amount' | 'percentage') || 'amount');
+                                            setVariants(product.variants.map(v => ({
+                                              id: v.id,
+                                              quantity: v.quantity,
+                                              price: v.price,
+                                              wholesalePrice: (v as any).wholesale_price || 0,
+                                              isDefault: v.is_default || false,
+                                              stockQuantity: v.stock_quantity,
+                                            })));
+                                            setActiveTab('add');
+                                          }}
+                                        >
+                                          <Edit className="w-3 h-3 mr-1" /> Edit
+                                        </Button>
+                                        <AlertDialog>
+                                          <AlertDialogTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
+                                              <Trash2 className="w-4 h-4" />
+                                            </Button>
+                                          </AlertDialogTrigger>
+                                          <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                              <AlertDialogTitle>Delete this seller's product?</AlertDialogTitle>
+                                              <AlertDialogDescription>This will permanently remove {product.name}.</AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                              <AlertDialogAction onClick={() => deleteProduct(product.id)}>Delete</AlertDialogAction>
+                                            </AlertDialogFooter>
+                                          </AlertDialogContent>
+                                        </AlertDialog>
+                                      </>
+                                    )}
+                                    <div className="flex items-center gap-1">
+                                      <Switch
+                                        checked={product.is_in_stock}
+                                        onCheckedChange={(checked) => toggleProductStock(product.id, checked)}
+                                      />
+                                      <span className="text-xs">{product.is_in_stock ? 'In Stock' : 'Out'}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
               </CardContent>
             </Card>
           </TabsContent>
