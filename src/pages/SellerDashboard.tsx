@@ -1731,25 +1731,36 @@ const SellerDashboard: React.FC = () => {
                       }
                     }
                   });
-                  });
                   // Subtract redeemed cycles
                   Object.keys(customerStamps).forEach(key => {
                     const redeemed = redeemedPerUser[key] || 0;
                     customerStamps[key].stamps = Math.max(0, customerStamps[key].stamps - (redeemed * 10)) % 10;
                   });
-                  const pending = Object.values(customerStamps).filter(c => c.stamps > 0);
-                  if (pending.length === 0) {
+                  const pending = Object.values(customerStamps).filter(c => c.stamps > 0 || c.stamps === 0);
+                  const allCustomers = Object.values(customerStamps);
+                  if (allCustomers.length === 0) {
                     return <p className="text-center text-muted-foreground py-6">No customers with pending loyalty stamps</p>;
                   }
                   return (
                     <div className="grid gap-3">
-                      {pending.sort((a, b) => b.stamps - a.stamps).map((cust) => (
+                      {allCustomers.sort((a, b) => b.stamps - a.stamps).map((cust) => (
                         <div key={cust.phone} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/30 transition-colors">
                           <div className="flex-1 min-w-0">
                             <p className="font-semibold truncate">{cust.name}</p>
                             <p className="text-xs text-muted-foreground">{cust.phone}</p>
                           </div>
                           <div className="flex items-center gap-2 flex-shrink-0">
+                            {/* Manual +/- buttons */}
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-7 w-7 text-destructive hover:bg-destructive/10"
+                              onClick={() => handleManualLoyaltyAdjust(cust.phone, cust.name, cust.userId, false)}
+                              title="Remove 1 point"
+                              disabled={cust.stamps <= 0}
+                            >
+                              <MinusCircle className="w-3.5 h-3.5" />
+                            </Button>
                             <div className="flex gap-0.5">
                               {Array.from({ length: 10 }).map((_, i) => (
                                 <div
@@ -1764,6 +1775,15 @@ const SellerDashboard: React.FC = () => {
                                 </div>
                               ))}
                             </div>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-7 w-7 text-primary hover:bg-primary/10"
+                              onClick={() => handleManualLoyaltyAdjust(cust.phone, cust.name, cust.userId, true)}
+                              title="Add 1 point"
+                            >
+                              <PlusCircle className="w-3.5 h-3.5" />
+                            </Button>
                             <Badge variant="secondary" className="font-mono text-xs">
                               {cust.stamps}/10
                             </Badge>
