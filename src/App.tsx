@@ -43,6 +43,7 @@ const App = () => (
               <Route path="/trending" element={<Trending />} />
               <Route path="/seller" element={<SellerDashboard />} />
               <Route path="/seller-login" element={<SellerLogin />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

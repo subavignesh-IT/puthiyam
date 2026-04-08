@@ -191,6 +191,55 @@ const Login: React.FC = () => {
               </Button>
             </form>
 
+            <div className="mt-3 text-center">
+              <button
+                type="button"
+                onClick={() => setShowForgot(true)}
+                className="text-sm text-primary hover:underline font-medium"
+              >
+                Forgot Password?
+              </button>
+            </div>
+
+            {showForgot && (
+              <div className="mt-4 p-4 border border-border rounded-lg bg-muted/30 space-y-3 animate-fade-in">
+                <p className="text-sm font-medium">Reset your password</p>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    type="email"
+                    value={forgotEmail}
+                    onChange={e => setForgotEmail(e.target.value)}
+                    placeholder="Enter your email"
+                    className="pl-10"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    className="flex-1"
+                    disabled={forgotLoading || !forgotEmail}
+                    onClick={async () => {
+                      setForgotLoading(true);
+                      const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
+                        redirectTo: `${window.location.origin}/reset-password`,
+                      });
+                      setForgotLoading(false);
+                      if (error) {
+                        toast({ title: 'Error', description: error.message, variant: 'destructive' });
+                      } else {
+                        toast({ title: 'Email Sent!', description: 'Check your inbox for a password reset link.' });
+                        setShowForgot(false);
+                      }
+                    }}
+                  >
+                    {forgotLoading ? 'Sending...' : 'Send Reset Link'}
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setShowForgot(false)}>Cancel</Button>
+                </div>
+              </div>
+            )}
+
             <div className="mt-4 flex justify-center">
               <ProfileEditDialog />
             </div>
