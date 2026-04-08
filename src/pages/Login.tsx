@@ -19,6 +19,9 @@ const Login: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showOTP, setShowOTP] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
