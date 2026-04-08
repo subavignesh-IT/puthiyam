@@ -1,13 +1,29 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Info, ShoppingCart, Phone, ClipboardList, TrendingUp } from 'lucide-react';
+import { Home, Info, ShoppingCart, Phone, ClipboardList, TrendingUp, Store } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 
 const BottomNav: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { getItemCount } = useCart();
+  const { user } = useAuth();
   const itemCount = getItemCount();
+  const [isSellerOrAdmin, setIsSellerOrAdmin] = useState(false);
+
+  useEffect(() => {
+    const checkRole = async () => {
+      if (!user) { setIsSellerOrAdmin(false); return; }
+      const [adminRes, sellerRes] = await Promise.all([
+        supabase.rpc('has_role', { _user_id: user.id, _role: 'admin' as any }),
+        supabase.rpc('has_role', { _user_id: user.id, _role: 'seller' as any }),
+      ]);
+      setIsSellerOrAdmin(adminRes.data === true || sellerRes.data === true);
+    };
+    checkRole();
+  }, [user]);
 
   const navItems = [
     { path: '/', icon: Home, label: 'Home' },
@@ -15,7 +31,10 @@ const BottomNav: React.FC = () => {
     { path: '/cart', icon: ShoppingCart, label: 'Cart', badge: itemCount },
     { path: '/contact', icon: Phone, label: 'Contact' },
     { path: '/orders', icon: ClipboardList, label: 'My Order' },
-    { path: '/trending', icon: TrendingUp, label: 'Trending' },
+    ...(isSellerOrAdmin
+      ? [{ path: '/seller', icon: Store, label: 'Seller' }]
+      : [{ path: '/trending', icon: TrendingUp, label: 'Trending' }]
+    ),
   ];
 
   const isActive = (path: string) => location.pathname === path;
