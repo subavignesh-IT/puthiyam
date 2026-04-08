@@ -2556,10 +2556,17 @@ const SellerDashboard: React.FC = () => {
                                       <AlertDialogFooter>
                                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                                         <AlertDialogAction onClick={async () => {
-                                          await supabase.from('profiles').delete().eq('user_id', customer.user_id);
-                                          await supabase.from('user_roles').delete().eq('user_id', customer.user_id);
-                                          setCustomers(prev => prev.filter(c => c.user_id !== customer.user_id));
-                                          toast({ title: '🗑️ User deleted' });
+                                          try {
+                                            const { data: { session } } = await supabase.auth.getSession();
+                                            const res = await supabase.functions.invoke('delete-user', {
+                                              body: { user_id: customer.user_id },
+                                            });
+                                            if (res.error) throw res.error;
+                                            setCustomers(prev => prev.filter(c => c.user_id !== customer.user_id));
+                                            toast({ title: '🗑️ User deleted from database' });
+                                          } catch (err: any) {
+                                            toast({ title: 'Error deleting user', description: err.message, variant: 'destructive' });
+                                          }
                                         }}>Delete</AlertDialogAction>
                                       </AlertDialogFooter>
                                     </AlertDialogContent>
