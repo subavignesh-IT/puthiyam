@@ -18,6 +18,7 @@ import Trending from "./pages/Trending";
 import SellerDashboard from "./pages/SellerDashboard";
 import SellerLogin from "./pages/SellerLogin";
 import NotFound from "./pages/NotFound";
+import ResetPassword from "./pages/ResetPassword";
 
 const queryClient = new QueryClient();
 
