@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { CartProvider } from "@/context/CartContext";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/hooks/useTheme";
+import { UIStyleProvider } from "@/hooks/useUIStyle";
 import Index from "./pages/Index";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
