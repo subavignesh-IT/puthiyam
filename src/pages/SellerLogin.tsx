@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
-import { Mail, Lock, Eye, EyeOff, Store } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Store, ArrowLeft } from 'lucide-react';
 
 const SellerLogin: React.FC = () => {
   const navigate = useNavigate();
@@ -17,6 +17,9 @@ const SellerLogin: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({ email: '', password: '' });
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -70,32 +73,96 @@ const SellerLogin: React.FC = () => {
             <CardDescription>Access your seller dashboard</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input id="email" name="email" type="email" value={formData.email} onChange={handleInputChange} placeholder="seller@example.com" className="pl-10" required />
+            {showForgotPassword ? (
+              <div className="space-y-4">
+                <button
+                  type="button"
+                  onClick={() => setShowForgotPassword(false)}
+                  className="flex items-center gap-1 text-sm text-primary hover:underline"
+                >
+                  <ArrowLeft className="w-3 h-3" /> Back to login
+                </button>
+                <p className="text-sm text-muted-foreground">
+                  Enter your seller email and we'll send you a password reset link.
+                </p>
+                <div className="space-y-2">
+                  <Label htmlFor="reset-email">Email</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      id="reset-email"
+                      type="email"
+                      value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)}
+                      placeholder="seller@example.com"
+                      className="pl-10"
+                      required
+                    />
+                  </div>
                 </div>
+                <Button
+                  className="w-full gradient-hero text-primary-foreground"
+                  disabled={resetLoading}
+                  onClick={async () => {
+                    if (!resetEmail) {
+                      toast({ title: "Email Required", description: "Please enter your email", variant: "destructive" });
+                      return;
+                    }
+                    setResetLoading(true);
+                    const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+                      redirectTo: `${window.location.origin}/reset-password`,
+                    });
+                    setResetLoading(false);
+                    if (error) {
+                      toast({ title: "Error", description: error.message, variant: "destructive" });
+                    } else {
+                      toast({ title: "Email Sent!", description: "Check your inbox for the password reset link." });
+                      setShowForgotPassword(false);
+                    }
+                  }}
+                >
+                  {resetLoading ? 'Sending...' : 'Send Reset Link'}
+                </Button>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input id="password" name="password" type={showPassword ? 'text' : 'password'} value={formData.password} onChange={handleInputChange} placeholder="••••••••" className="pl-10 pr-10" required />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
+            ) : (
+              <>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input id="email" name="email" type="email" value={formData.email} onChange={handleInputChange} placeholder="seller@example.com" className="pl-10" required />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <Label htmlFor="password">Password</Label>
+                      <button
+                        type="button"
+                        onClick={() => setShowForgotPassword(true)}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        Forgot Password?
+                      </button>
+                    </div>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input id="password" name="password" type={showPassword ? 'text' : 'password'} value={formData.password} onChange={handleInputChange} placeholder="••••••••" className="pl-10 pr-10" required />
+                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+                  <Button type="submit" className="w-full gradient-hero text-primary-foreground" disabled={loading}>
+                    {loading ? 'Verifying...' : 'Login as Seller'}
+                  </Button>
+                </form>
+                <div className="mt-4 text-center text-sm">
+                  <span className="text-muted-foreground">Are you a buyer? </span>
+                  <Link to="/login" className="text-primary hover:underline font-medium">Buyer Login</Link>
                 </div>
-              </div>
-              <Button type="submit" className="w-full gradient-hero text-primary-foreground" disabled={loading}>
-                {loading ? 'Verifying...' : 'Login as Seller'}
-              </Button>
-            </form>
-            <div className="mt-4 text-center text-sm">
-              <span className="text-muted-foreground">Are you a buyer? </span>
-              <Link to="/login" className="text-primary hover:underline font-medium">Buyer Login</Link>
-            </div>
+              </>
+            )}
           </CardContent>
         </Card>
       </main>
