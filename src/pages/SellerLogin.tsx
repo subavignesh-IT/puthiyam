@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
-import { Mail, Lock, Eye, EyeOff, Store } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Store, ArrowLeft } from 'lucide-react';
 
 const SellerLogin: React.FC = () => {
   const navigate = useNavigate();
