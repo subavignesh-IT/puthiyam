@@ -48,7 +48,7 @@ const ThemeContext = createContext<ThemeContextType>({
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
   const [currentTheme, setCurrentTheme] = useState(() => {
-    return localStorage.getItem('app-theme') || 'default';
+    return localStorage.getItem('app-theme') || 'midnight';
   });
 
   // Apply theme

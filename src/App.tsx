@@ -52,6 +52,7 @@ const App = () => (
           </BrowserRouter>
         </TooltipProvider>
       </CartProvider>
+      </UIStyleProvider>
       </ThemeProvider>
     </AuthProvider>
   </QueryClientProvider>

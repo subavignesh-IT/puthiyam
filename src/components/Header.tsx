@@ -117,6 +117,7 @@ const Header: React.FC<HeaderProps> = ({ onSearch, searchQuery = '' }) => {
           {/* User Section */}
           <div className="flex items-center gap-2">
             <ThemeSwitcher />
+            <UIStyleSwitcher />
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
