@@ -129,20 +129,244 @@
   }
 }
 
-/* UI Style Effects */
+/* ===== UI STYLE SYSTEM ===== */
+
+/* --- Default: Classic Clean --- */
+[data-ui-style="default"] * {
+  transition: all 0.2s ease;
+}
+
+/* --- Glassmorphism --- */
 [data-ui-style="glassmorphism"] .bg-card,
-[data-ui-style="glassmorphism"] [class*="shadow-soft"] {
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+[data-ui-style="glassmorphism"] [class*="CardContent"],
+[data-ui-style="glassmorphism"] header,
+[data-ui-style="glassmorphism"] .bg-background {
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  background: hsl(var(--card) / 0.7) !important;
+  border: 1px solid hsl(var(--primary) / 0.15) !important;
+}
+[data-ui-style="glassmorphism"] button {
+  backdrop-filter: blur(8px);
+  transition: all 0.3s ease;
+}
+[data-ui-style="glassmorphism"] button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px hsl(var(--primary) / 0.2);
+}
+[data-ui-style="glassmorphism"] .rounded-full {
+  border-radius: 1rem !important;
 }
 
-[data-ui-style="neon"] *:hover {
-  text-shadow: 0 0 8px hsl(var(--primary) / 0.3);
+/* --- Neumorphism (Soft 3D) --- */
+[data-ui-style="neumorphism"] .bg-card,
+[data-ui-style="neumorphism"] [class*="Card"] {
+  border: none !important;
+  box-shadow: 8px 8px 16px hsl(var(--foreground) / 0.08), -8px -8px 16px hsl(var(--background) / 0.5) !important;
+  border-radius: 1.25rem !important;
+}
+[data-ui-style="neumorphism"] button {
+  border: none !important;
+  box-shadow: 4px 4px 8px hsl(var(--foreground) / 0.08), -4px -4px 8px hsl(var(--background) / 0.5);
+  border-radius: 1rem !important;
+  transition: all 0.25s ease;
+}
+[data-ui-style="neumorphism"] button:hover {
+  box-shadow: 2px 2px 4px hsl(var(--foreground) / 0.1), -2px -2px 4px hsl(var(--background) / 0.6);
+}
+[data-ui-style="neumorphism"] button:active {
+  box-shadow: inset 4px 4px 8px hsl(var(--foreground) / 0.08), inset -4px -4px 8px hsl(var(--background) / 0.5) !important;
+}
+[data-ui-style="neumorphism"] input {
+  box-shadow: inset 3px 3px 6px hsl(var(--foreground) / 0.05), inset -3px -3px 6px hsl(var(--background) / 0.4);
+  border: none !important;
+  border-radius: 1rem !important;
 }
 
+/* --- Flat Modern --- */
+[data-ui-style="flat"] * {
+  border-radius: 0.25rem !important;
+  transition: all 0.15s ease !important;
+  box-shadow: none !important;
+}
+[data-ui-style="flat"] .bg-card,
+[data-ui-style="flat"] [class*="Card"] {
+  border: 2px solid hsl(var(--primary)) !important;
+  border-radius: 0.25rem !important;
+}
+[data-ui-style="flat"] button {
+  border-radius: 0.25rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em;
+}
+[data-ui-style="flat"] button:hover {
+  opacity: 0.85;
+  transform: none !important;
+}
+[data-ui-style="flat"] .gradient-hero {
+  background: hsl(var(--primary)) !important;
+}
+
+/* --- Bubble Round --- */
+[data-ui-style="rounded"] * {
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+[data-ui-style="rounded"] .bg-card,
+[data-ui-style="rounded"] [class*="Card"] {
+  border-radius: 2rem !important;
+  border: 1px solid hsl(var(--border));
+  box-shadow: 0 4px 20px hsl(var(--foreground) / 0.06);
+}
+[data-ui-style="rounded"] button {
+  border-radius: 2rem !important;
+}
+[data-ui-style="rounded"] button:hover {
+  transform: scale(1.08) !important;
+}
+[data-ui-style="rounded"] input {
+  border-radius: 2rem !important;
+}
+[data-ui-style="rounded"] img {
+  border-radius: 1.5rem !important;
+}
+[data-ui-style="rounded"] header {
+  border-radius: 0 0 2rem 2rem !important;
+}
+
+/* --- Elegant Glow --- */
+[data-ui-style="elegant"] .bg-card,
+[data-ui-style="elegant"] [class*="Card"] {
+  border: 1px solid hsl(var(--primary) / 0.25) !important;
+  box-shadow: 0 0 20px hsl(var(--primary) / 0.08), 0 0 60px hsl(var(--primary) / 0.03) !important;
+  transition: all 0.4s ease;
+}
+[data-ui-style="elegant"] .bg-card:hover,
+[data-ui-style="elegant"] [class*="Card"]:hover {
+  box-shadow: 0 0 30px hsl(var(--primary) / 0.15), 0 0 80px hsl(var(--primary) / 0.06) !important;
+  border-color: hsl(var(--primary) / 0.5) !important;
+}
+[data-ui-style="elegant"] button {
+  transition: all 0.4s ease;
+}
+[data-ui-style="elegant"] button:hover {
+  box-shadow: 0 0 15px hsl(var(--primary) / 0.3) !important;
+  transform: translateY(-1px);
+}
+[data-ui-style="elegant"] .gradient-hero {
+  box-shadow: 0 0 30px hsl(var(--primary) / 0.4);
+}
+
+/* --- Bold Brutalist --- */
+[data-ui-style="brutalist"] * {
+  border-radius: 0 !important;
+  transition: transform 0.1s ease !important;
+}
+[data-ui-style="brutalist"] .bg-card,
+[data-ui-style="brutalist"] [class*="Card"] {
+  border: 3px solid hsl(var(--foreground)) !important;
+  box-shadow: 6px 6px 0 hsl(var(--foreground)) !important;
+}
+[data-ui-style="brutalist"] button {
+  border: 2px solid hsl(var(--foreground)) !important;
+  box-shadow: 4px 4px 0 hsl(var(--foreground)) !important;
+  font-weight: 900 !important;
+  text-transform: uppercase !important;
+}
+[data-ui-style="brutalist"] button:hover {
+  transform: translate(2px, 2px) !important;
+  box-shadow: 2px 2px 0 hsl(var(--foreground)) !important;
+}
+[data-ui-style="brutalist"] button:active {
+  transform: translate(4px, 4px) !important;
+  box-shadow: 0 0 0 hsl(var(--foreground)) !important;
+}
+[data-ui-style="brutalist"] input {
+  border: 2px solid hsl(var(--foreground)) !important;
+}
+[data-ui-style="brutalist"] header {
+  border-bottom: 3px solid hsl(var(--foreground)) !important;
+}
+
+/* --- Ultra Minimal --- */
+[data-ui-style="minimal"] * {
+  box-shadow: none !important;
+  transition: all 0.2s ease;
+}
+[data-ui-style="minimal"] .bg-card,
+[data-ui-style="minimal"] [class*="Card"] {
+  border: none !important;
+  background: transparent !important;
+}
+[data-ui-style="minimal"] button {
+  border: 1px solid hsl(var(--muted-foreground) / 0.2) !important;
+}
+[data-ui-style="minimal"] button:hover {
+  background: hsl(var(--primary) / 0.08) !important;
+}
+[data-ui-style="minimal"] .gradient-hero {
+  background: hsl(var(--primary)) !important;
+  opacity: 0.9;
+}
+[data-ui-style="minimal"] header {
+  border-bottom: none !important;
+  box-shadow: 0 1px 0 hsl(var(--border) / 0.5) !important;
+}
+
+/* --- Retro Pixel --- */
+[data-ui-style="retro"] * {
+  border-radius: 0 !important;
+  transition: all 0.15s steps(3) !important;
+}
+[data-ui-style="retro"] .bg-card,
+[data-ui-style="retro"] [class*="Card"] {
+  border: 2px solid hsl(var(--primary)) !important;
+  box-shadow: 6px 6px 0 hsl(var(--primary) / 0.25) !important;
+}
+[data-ui-style="retro"] button {
+  border: 2px solid hsl(var(--primary)) !important;
+  box-shadow: 3px 3px 0 hsl(var(--primary) / 0.3) !important;
+  font-family: monospace !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.1em;
+}
+[data-ui-style="retro"] button:hover {
+  transform: translate(1px, 1px) !important;
+  box-shadow: 2px 2px 0 hsl(var(--primary) / 0.3) !important;
+}
+[data-ui-style="retro"] h1, [data-ui-style="retro"] h2, [data-ui-style="retro"] h3 {
+  font-family: monospace !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em;
+}
+[data-ui-style="retro"] input {
+  border: 2px solid hsl(var(--primary)) !important;
+  font-family: monospace !important;
+}
+
+/* --- Aurora Flow --- */
+[data-ui-style="aurora"] * {
+  transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+}
+[data-ui-style="aurora"] .bg-card,
+[data-ui-style="aurora"] [class*="Card"] {
+  border: 1px solid hsl(var(--accent) / 0.3) !important;
+  box-shadow: 0 4px 30px hsl(var(--accent) / 0.1) !important;
+  border-radius: 1rem !important;
+}
+[data-ui-style="aurora"] .bg-card:hover,
+[data-ui-style="aurora"] [class*="Card"]:hover {
+  border-color: hsl(var(--accent) / 0.6) !important;
+  box-shadow: 0 8px 40px hsl(var(--accent) / 0.2), 0 0 20px hsl(var(--primary) / 0.1) !important;
+  transform: translateY(-4px);
+}
 [data-ui-style="aurora"] .gradient-hero {
-  background-size: 200% 200%;
-  animation: aurora-shift 4s ease infinite;
+  background-size: 200% 200% !important;
+  animation: aurora-shift 4s ease infinite !important;
+}
+[data-ui-style="aurora"] button:hover {
+  transform: translateY(-3px) scale(1.02) !important;
+  box-shadow: 0 6px 20px hsl(var(--primary) / 0.25) !important;
 }
 
 @keyframes aurora-shift {
@@ -150,11 +374,74 @@
   50% { background-position: 100% 50%; }
 }
 
-[data-ui-style="brutalist"] button {
-  transition: transform 0.1s ease !important;
+/* --- Neon Glow --- */
+[data-ui-style="neon"] * {
+  transition: all 0.3s ease;
 }
-[data-ui-style="brutalist"] button:active {
-  transform: translate(2px, 2px) !important;
+[data-ui-style="neon"] .bg-card,
+[data-ui-style="neon"] [class*="Card"] {
+  border: 1px solid hsl(var(--primary) / 0.4) !important;
+  box-shadow: 0 0 10px hsl(var(--primary) / 0.15), inset 0 0 10px hsl(var(--primary) / 0.03) !important;
+}
+[data-ui-style="neon"] .bg-card:hover,
+[data-ui-style="neon"] [class*="Card"]:hover {
+  border-color: hsl(var(--primary) / 0.8) !important;
+  box-shadow: 0 0 20px hsl(var(--primary) / 0.3), 0 0 40px hsl(var(--primary) / 0.1), inset 0 0 15px hsl(var(--primary) / 0.05) !important;
+}
+[data-ui-style="neon"] button {
+  text-shadow: 0 0 8px hsl(var(--primary) / 0.3);
+}
+[data-ui-style="neon"] button:hover {
+  box-shadow: 0 0 15px hsl(var(--primary) / 0.4), 0 0 30px hsl(var(--primary) / 0.15) !important;
+  text-shadow: 0 0 12px hsl(var(--primary) / 0.5);
+  transform: scale(1.05);
+}
+[data-ui-style="neon"] .gradient-hero {
+  box-shadow: 0 0 30px hsl(var(--primary) / 0.4), 0 0 60px hsl(var(--primary) / 0.15) !important;
+}
+[data-ui-style="neon"] header {
+  border-bottom: 1px solid hsl(var(--primary) / 0.3) !important;
+  box-shadow: 0 2px 15px hsl(var(--primary) / 0.15) !important;
+}
+[data-ui-style="neon"] input {
+  border: 1px solid hsl(var(--primary) / 0.3) !important;
+}
+[data-ui-style="neon"] input:focus {
+  box-shadow: 0 0 10px hsl(var(--primary) / 0.3), 0 0 20px hsl(var(--primary) / 0.1) !important;
+}
+[data-ui-style="neon"] h1, [data-ui-style="neon"] h2, [data-ui-style="neon"] h3 {
+  text-shadow: 0 0 10px hsl(var(--primary) / 0.2);
+}
+
+/* --- Cozy Warm --- */
+[data-ui-style="cozy"] * {
+  transition: all 0.35s ease !important;
+}
+[data-ui-style="cozy"] .bg-card,
+[data-ui-style="cozy"] [class*="Card"] {
+  border-radius: 1.5rem !important;
+  border: 1px solid hsl(var(--border)) !important;
+  box-shadow: 0 6px 25px hsl(var(--foreground) / 0.04) !important;
+}
+[data-ui-style="cozy"] .bg-card:hover,
+[data-ui-style="cozy"] [class*="Card"]:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 35px hsl(var(--foreground) / 0.08) !important;
+}
+[data-ui-style="cozy"] button {
+  border-radius: 1.5rem !important;
+}
+[data-ui-style="cozy"] button:hover {
+  transform: scale(1.04) translateY(-1px);
+}
+[data-ui-style="cozy"] input {
+  border-radius: 1.5rem !important;
+}
+[data-ui-style="cozy"] img {
+  border-radius: 1.25rem !important;
+}
+[data-ui-style="cozy"] header {
+  border-radius: 0 0 1.5rem 1.5rem !important;
 }
 
 /* Custom scrollbar */
