@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Search, User, LogOut, ClipboardList, ChevronDown, Store } from 'lucide-react';
 import ThemeSwitcher from '@/components/ThemeSwitcher';
+import UIStyleSwitcher from '@/components/UIStyleSwitcher';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
