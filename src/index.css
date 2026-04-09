@@ -129,6 +129,34 @@
   }
 }
 
+/* UI Style Effects */
+[data-ui-style="glassmorphism"] .bg-card,
+[data-ui-style="glassmorphism"] [class*="shadow-soft"] {
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+[data-ui-style="neon"] *:hover {
+  text-shadow: 0 0 8px hsl(var(--primary) / 0.3);
+}
+
+[data-ui-style="aurora"] .gradient-hero {
+  background-size: 200% 200%;
+  animation: aurora-shift 4s ease infinite;
+}
+
+@keyframes aurora-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+[data-ui-style="brutalist"] button {
+  transition: transform 0.1s ease !important;
+}
+[data-ui-style="brutalist"] button:active {
+  transform: translate(2px, 2px) !important;
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
