@@ -9,6 +9,7 @@ import Footer from '@/components/Footer';
 import BottomNav from '@/components/BottomNav';
 import ImageSlideshow from '@/components/ImageSlideshow';
 import SaleCountdownTimer from '@/components/SaleCountdownTimer';
+import ShareButton from '@/components/ShareButton';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
