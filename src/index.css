@@ -462,3 +462,164 @@
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--primary) / 0.7);
 }
+
+/* ===== ENHANCED ANIMATIONS PER UI STYLE ===== */
+
+@keyframes ui-pop {
+  0% { transform: scale(0.92); opacity: 0; }
+  60% { transform: scale(1.04); opacity: 1; }
+  100% { transform: scale(1); }
+}
+@keyframes ui-glow-pulse {
+  0%, 100% { box-shadow: 0 0 8px hsl(var(--primary) / 0.25); }
+  50% { box-shadow: 0 0 24px hsl(var(--primary) / 0.55), 0 0 48px hsl(var(--primary) / 0.2); }
+}
+@keyframes ui-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+@keyframes ui-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes ui-tilt {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(0.4deg); }
+  75% { transform: rotate(-0.4deg); }
+}
+
+/* Glassmorphism — soft float + shimmer on hover */
+[data-ui-style="glassmorphism"] .bg-card:hover,
+[data-ui-style="glassmorphism"] [class*="Card"]:hover {
+  transform: translateY(-3px) scale(1.01);
+  background: hsl(var(--card) / 0.85) !important;
+}
+[data-ui-style="glassmorphism"] button {
+  position: relative;
+  overflow: hidden;
+}
+[data-ui-style="glassmorphism"] button::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 30%, hsl(var(--primary) / 0.18) 50%, transparent 70%);
+  background-size: 200% 100%;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+[data-ui-style="glassmorphism"] button:hover::after {
+  opacity: 1;
+  animation: ui-shimmer 1.4s linear infinite;
+}
+
+/* Neumorphism — gentle press feedback */
+[data-ui-style="neumorphism"] button:hover {
+  transform: translateY(-1px);
+}
+[data-ui-style="neumorphism"] .bg-card:hover {
+  transform: translateY(-2px);
+}
+
+/* Flat — quick uppercase snap */
+[data-ui-style="flat"] button:active {
+  transform: scale(0.96) !important;
+}
+
+/* Bubble Round — bouncy float */
+[data-ui-style="rounded"] .bg-card:hover,
+[data-ui-style="rounded"] [class*="Card"]:hover {
+  animation: ui-float 1.6s ease-in-out infinite;
+}
+[data-ui-style="rounded"] button:active {
+  transform: scale(0.94) !important;
+}
+
+/* Elegant — gentle glow pulse on hover */
+[data-ui-style="elegant"] .bg-card:hover,
+[data-ui-style="elegant"] [class*="Card"]:hover {
+  animation: ui-glow-pulse 2.4s ease-in-out infinite;
+}
+[data-ui-style="elegant"] h1, [data-ui-style="elegant"] h2 {
+  background: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--accent)), hsl(var(--primary)));
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: ui-shimmer 6s linear infinite;
+}
+
+/* Brutalist — micro tilt on hover */
+[data-ui-style="brutalist"] .bg-card:hover,
+[data-ui-style="brutalist"] [class*="Card"]:hover {
+  animation: ui-tilt 0.4s ease-in-out;
+  transform: translate(-2px, -2px);
+  box-shadow: 8px 8px 0 hsl(var(--foreground)) !important;
+}
+
+/* Minimal — soft underline slide */
+[data-ui-style="minimal"] a, [data-ui-style="minimal"] button {
+  position: relative;
+}
+[data-ui-style="minimal"] button:hover {
+  letter-spacing: 0.02em;
+}
+
+/* Retro — flicker pop */
+[data-ui-style="retro"] .bg-card,
+[data-ui-style="retro"] [class*="Card"] {
+  animation: ui-pop 0.4s steps(4);
+}
+[data-ui-style="retro"] button:hover {
+  animation: ui-tilt 0.2s steps(3);
+}
+
+/* Aurora — animated gradient borders */
+[data-ui-style="aurora"] .bg-card,
+[data-ui-style="aurora"] [class*="Card"] {
+  position: relative;
+  background-clip: padding-box;
+}
+[data-ui-style="aurora"] .bg-card::before,
+[data-ui-style="aurora"] [class*="Card"]::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(120deg, hsl(var(--primary)), hsl(var(--accent)), hsl(var(--secondary)), hsl(var(--primary)));
+  background-size: 300% 300%;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  opacity: 0.5;
+  animation: aurora-shift 6s ease infinite;
+  pointer-events: none;
+}
+[data-ui-style="aurora"] button:hover {
+  background-size: 200% 200%;
+  animation: aurora-shift 3s ease infinite;
+}
+
+/* Neon — pulsing glow on cards */
+[data-ui-style="neon"] .bg-card:hover,
+[data-ui-style="neon"] [class*="Card"]:hover {
+  animation: ui-glow-pulse 1.8s ease-in-out infinite;
+}
+[data-ui-style="neon"] button:active {
+  transform: scale(0.97);
+}
+
+/* Cozy — warm float */
+[data-ui-style="cozy"] .bg-card:hover,
+[data-ui-style="cozy"] [class*="Card"]:hover {
+  animation: ui-float 2.2s ease-in-out infinite;
+}
+
+/* Default — subtle pop on appear */
+[data-ui-style="default"] .bg-card,
+[data-ui-style="default"] [class*="Card"] {
+  animation: ui-pop 0.35s ease-out;
+}
+[data-ui-style="default"] button:active {
+  transform: scale(0.97);
+}

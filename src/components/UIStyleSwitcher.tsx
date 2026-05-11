@@ -26,7 +26,7 @@ const UIStyleSwitcher: React.FC = () => {
           <Layers className="w-5 h-5 text-primary" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 max-w-lg w-[92vw] sm:w-full animate-scale-in border-2 border-primary/30 shadow-elevated">
         <DialogHeader>
           <DialogTitle className="font-serif text-xl">Choose UI Style</DialogTitle>
         </DialogHeader>
