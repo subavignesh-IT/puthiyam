@@ -86,6 +86,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           <ShareButton
             productId={product.id}
             productName={product.name}
+            productImage={product.image}
             price={finalPrice}
           />
         </div>

@@ -15,10 +15,25 @@ interface ShareButtonProps {
 const ShareButton: React.FC<ShareButtonProps> = ({
   productId,
   productName,
+  productImage,
   price,
   className = '',
   variant = 'icon',
 }) => {
+  const fetchImageFile = async (): Promise<File | null> => {
+    if (!productImage) return null;
+    try {
+      const res = await fetch(productImage, { mode: 'cors' });
+      if (!res.ok) return null;
+      const blob = await res.blob();
+      const ext = (blob.type.split('/')[1] || 'jpg').split('+')[0];
+      const safeName = productName.replace(/[^a-z0-9]+/gi, '-').toLowerCase().slice(0, 40) || 'product';
+      return new File([blob], `${safeName}.${ext}`, { type: blob.type || 'image/jpeg' });
+    } catch {
+      return null;
+    }
+  };
+
   const handleShare = async (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
@@ -29,8 +44,13 @@ const ShareButton: React.FC<ShareButtonProps> = ({
       : `Check out ${productName} on PUTHIYAM!`;
 
     try {
+      const file = await fetchImageFile();
+      const shareData: ShareData & { files?: File[] } = { title: productName, text, url };
+      if (file && (navigator as any).canShare?.({ files: [file] })) {
+        shareData.files = [file];
+      }
       if (navigator.share) {
-        await navigator.share({ title: productName, text, url });
+        await navigator.share(shareData);
         return;
       }
     } catch (err: any) {
@@ -41,7 +61,9 @@ const ShareButton: React.FC<ShareButtonProps> = ({
       await navigator.clipboard.writeText(`${text} ${url}`);
       toast({
         title: 'Link copied!',
-        description: 'Product link copied to clipboard.',
+        description: productImage
+          ? 'Product link copied. Image sharing not supported on this device.'
+          : 'Product link copied to clipboard.',
       });
     } catch {
       toast({
