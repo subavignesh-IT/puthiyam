@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Percent, AlertTriangle } from 'lucide-react';
 import SaleCountdownTimer from './SaleCountdownTimer';
+import ShareButton from './ShareButton';
 
 interface ProductCardProps {
   product: Product;
@@ -79,6 +80,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           <span className="bg-secondary text-secondary-foreground text-xs px-2 py-1 rounded-full shadow-sm">
             {product.category}
           </span>
+        </div>
+        {/* Share button */}
+        <div className="absolute bottom-2 left-2">
+          <ShareButton
+            productId={product.id}
+            productName={product.name}
+            price={finalPrice}
+          />
         </div>
         {/* Limited sale timer - bottom right, highlighted */}
         {hasLimitedSale && (
