@@ -9,6 +9,7 @@ import Footer from '@/components/Footer';
 import BottomNav from '@/components/BottomNav';
 import ImageSlideshow from '@/components/ImageSlideshow';
 import SaleCountdownTimer from '@/components/SaleCountdownTimer';
+import ShareButton from '@/components/ShareButton';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -493,9 +494,17 @@ const ProductDetail: React.FC = () => {
               <span className="bg-secondary text-secondary-foreground text-sm px-3 py-1 rounded-full">
                 {product.category}
               </span>
-              <h1 className="font-serif text-3xl font-bold mt-4 text-foreground">
-                {product.name}
-              </h1>
+              <div className="flex items-start justify-between gap-3 mt-4">
+                <h1 className="font-serif text-3xl font-bold text-foreground flex-1">
+                  {product.name}
+                </h1>
+                <ShareButton
+                  productId={product.id}
+                  productName={product.name}
+                  price={product.price}
+                  variant="full"
+                />
+              </div>
             </div>
 
             <p className="text-muted-foreground text-lg leading-relaxed">
