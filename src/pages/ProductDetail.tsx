@@ -501,6 +501,7 @@ const ProductDetail: React.FC = () => {
                 <ShareButton
                   productId={product.id}
                   productName={product.name}
+                  productImage={product.image}
                   price={product.price}
                   variant="full"
                 />
