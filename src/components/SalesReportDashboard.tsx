@@ -38,7 +38,11 @@ interface CustomerSummary {
 
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', '#22c55e', '#f59e0b', '#ef4444'];
 
-const SalesReportDashboard: React.FC = () => {
+interface SalesReportDashboardProps {
+  sellerId?: string;
+}
+
+const SalesReportDashboard: React.FC<SalesReportDashboardProps> = ({ sellerId }) => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Array<{
     id: string;
@@ -57,14 +61,16 @@ const SalesReportDashboard: React.FC = () => {
   useEffect(() => {
     fetchOrders();
     fetchProducts();
-  }, [dateRange]);
+  }, [dateRange, sellerId]);
 
   const fetchProducts = async () => {
     try {
-      const { data: productsData, error } = await supabase
+      let query = supabase
         .from('products')
         .select('*')
         .eq('is_active', true);
+      if (sellerId) query = query.eq('seller_id', sellerId);
+      const { data: productsData, error } = await query;
 
       if (error) throw error;
 
@@ -106,10 +112,36 @@ const SalesReportDashboard: React.FC = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setOrders((data || []).map(o => ({
+      let parsed: Order[] = (data || []).map((o: any) => ({
         ...o,
-        items: o.items as Order['items']
-      })));
+        items: o.items as Order['items'],
+      }));
+
+      if (sellerId) {
+        // Get this seller's product ids
+        const { data: sellerProducts } = await supabase
+          .from('products')
+          .select('id')
+          .eq('seller_id', sellerId);
+        const sellerProductIds = new Set((sellerProducts || []).map(p => p.id));
+
+        parsed = parsed
+          .map(o => {
+            const sellerItems = (o.items || []).filter(it => sellerProductIds.has(it.id));
+            if (sellerItems.length === 0) return null;
+            const subtotal = sellerItems.reduce((s, it) => s + it.price * it.quantity, 0);
+            return {
+              ...o,
+              items: sellerItems,
+              subtotal,
+              shipping_cost: 0,
+              total: subtotal,
+            };
+          })
+          .filter((o) => o !== null) as Order[];
+      }
+
+      setOrders(parsed);
     } catch (error) {
       console.error('Error fetching orders:', error);
     } finally {
