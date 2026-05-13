@@ -16,7 +16,6 @@ const ShareButton: React.FC<ShareButtonProps> = ({
   productId,
   productName,
   productImage,
-  price,
   className = '',
   variant = 'icon',
 }) => {
@@ -38,14 +37,15 @@ const ShareButton: React.FC<ShareButtonProps> = ({
     e.stopPropagation();
     e.preventDefault();
 
-    const url = `${window.location.origin}/product/${productId}`;
-    const text = price
-      ? `Check out ${productName} for ₹${price} on PUTHIYAM!`
-      : `Check out ${productName} on PUTHIYAM!`;
+    // Use edge function URL for rich link previews (OG meta tags + image)
+    const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
+    const shareUrl = `${SUPABASE_URL}/functions/v1/product-share?id=${productId}`;
+    const fallbackUrl = `${window.location.origin}/product/${productId}`;
+    const text = `Check out ${productName} on PUTHIYAM!`;
 
     try {
       const file = await fetchImageFile();
-      const shareData: ShareData & { files?: File[] } = { title: productName, text, url };
+      const shareData: ShareData & { files?: File[] } = { title: productName, text, url: shareUrl };
       if (file && (navigator as any).canShare?.({ files: [file] })) {
         shareData.files = [file];
       }
@@ -58,11 +58,11 @@ const ShareButton: React.FC<ShareButtonProps> = ({
     }
 
     try {
-      await navigator.clipboard.writeText(`${text} ${url}`);
+      await navigator.clipboard.writeText(`${text} ${fallbackUrl}`);
       toast({
         title: 'Link copied!',
         description: productImage
-          ? 'Product link copied. Image sharing not supported on this device.'
+          ? 'Product link copied. The shared link includes the product image preview!'
           : 'Product link copied to clipboard.',
       });
     } catch {

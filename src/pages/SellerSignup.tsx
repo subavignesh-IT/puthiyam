@@ -1,0 +1,277 @@
+import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { toast } from '@/hooks/use-toast';
+import { Mail, Lock, Eye, EyeOff, User, Phone, Store } from 'lucide-react';
+
+const SellerSignup: React.FC = () => {
+  const navigate = useNavigate();
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    fullName: '',
+    email: '',
+    phone: '',
+    password: '',
+    confirmPassword: '',
+  });
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({
+      ...prev,
+      [e.target.name]: e.target.value
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!formData.fullName || !formData.email || !formData.phone || !formData.password) {
+      toast({
+        title: "Missing Fields",
+        description: "Please fill in all fields",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      toast({
+        title: "Password Mismatch",
+        description: "Passwords do not match",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      toast({
+        title: "Weak Password",
+        description: "Password must be at least 6 characters",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // 1. Create the auth user
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          emailRedirectTo: window.location.origin,
+          data: {
+            full_name: formData.fullName,
+            phone: formData.phone,
+          }
+        }
+      });
+
+      if (authError) {
+        setLoading(false);
+        toast({
+          title: "Signup Failed",
+          description: authError.message,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (!authData.user) {
+        setLoading(false);
+        toast({
+          title: "Signup Failed",
+          description: "Could not create account. Please try again.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // 2. Update profile with name and phone
+      await supabase.from('profiles').update({
+        full_name: formData.fullName,
+        phone: formData.phone,
+      }).eq('user_id', authData.user.id);
+
+      // 3. Instantly assign seller role
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: authData.user.id,
+          role: 'seller',
+        });
+
+      if (roleError) {
+        console.error('Error assigning seller role:', roleError);
+        toast({
+          title: "Account Created",
+          description: "Your seller account was created, but there was an issue assigning the seller role. Please contact support.",
+          variant: "destructive"
+        });
+        setLoading(false);
+        return;
+      }
+
+      setLoading(false);
+      toast({
+        title: "Seller Account Created!",
+        description: "You are now registered as a seller on PUTHIYAM. Please check your email to verify your account.",
+      });
+      navigate('/seller-login');
+    } catch (error: any) {
+      setLoading(false);
+      toast({
+        title: "Signup Failed",
+        description: error.message || "Something went wrong",
+        variant: "destructive"
+      });
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Header />
+      <main className="container mx-auto px-4 py-8 flex items-center justify-center">
+        <Card className="w-full max-w-md shadow-elevated animate-fade-in">
+          <CardHeader className="text-center">
+            <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center">
+              <Store className="w-8 h-8 text-primary-foreground" />
+            </div>
+            <CardTitle className="font-serif text-2xl">Become a Seller</CardTitle>
+            <CardDescription>Register as a seller on PUTHIYAM PRODUCTS</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="fullName">Full Name</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    id="fullName"
+                    name="fullName"
+                    type="text"
+                    value={formData.fullName}
+                    onChange={handleInputChange}
+                    placeholder="e.g. Rajesh Kumar"
+                    className="pl-10"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    placeholder="e.g. seller@example.com"
+                    className="pl-10"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone Number</Label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                    placeholder="e.g. 9876543210"
+                    maxLength={10}
+                    className="pl-10"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    id="password"
+                    name="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    placeholder="e.g. ••••••••"
+                    className="pl-10 pr-10"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    type={showPassword ? 'text' : 'password'}
+                    value={formData.confirmPassword}
+                    onChange={handleInputChange}
+                    placeholder="Re-enter password"
+                    className="pl-10"
+                    required
+                  />
+                </div>
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full gradient-hero text-primary-foreground"
+                disabled={loading}
+              >
+                {loading ? 'Creating Seller Account...' : 'Register as Seller'}
+              </Button>
+            </form>
+
+            <div className="mt-6 text-center text-sm space-y-2">
+              <div>
+                <span className="text-muted-foreground">Already a seller? </span>
+                <Link to="/seller-login" className="text-primary hover:underline font-medium">
+                  Seller Login
+                </Link>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Want to buy instead? </span>
+                <Link to="/signup" className="text-primary hover:underline font-medium">
+                  Buyer Signup
+                </Link>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </main>
+      <Footer />
+    </div>
+  );
+};
+
+export default SellerSignup;
