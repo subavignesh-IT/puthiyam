@@ -138,7 +138,7 @@ const SalesReportDashboard: React.FC<SalesReportDashboardProps> = ({ sellerId })
               total: subtotal,
             };
           })
-          .filter((o): o is Order => o !== null);
+          .filter((o) => o !== null) as Order[];
       }
 
       setOrders(parsed);
