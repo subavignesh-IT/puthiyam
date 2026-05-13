@@ -2738,12 +2738,14 @@ const SellerDashboard: React.FC = () => {
                     {categories.map((cat) => (
                       <Badge key={cat.id} variant="outline" className="flex items-center gap-1 pr-1">
                         {cat.name}
-                        <button
-                          onClick={() => deleteCategory(cat.id)}
-                          className="ml-1 p-0.5 rounded-full hover:bg-destructive hover:text-destructive-foreground transition-colors"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
+                        {isAdmin && (
+                          <button
+                            onClick={() => deleteCategory(cat.id)}
+                            className="ml-1 p-0.5 rounded-full hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        )}
                       </Badge>
                     ))}
                   </div>
