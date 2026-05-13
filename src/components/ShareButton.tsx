@@ -38,7 +38,10 @@ const ShareButton: React.FC<ShareButtonProps> = ({
     e.stopPropagation();
     e.preventDefault();
 
-    const url = `${window.location.origin}/product/${productId}`;
+    // Use edge function URL for rich link previews (OG meta tags + image)
+    const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
+    const shareUrl = `${SUPABASE_URL}/functions/v1/product-share?id=${productId}`;
+    const fallbackUrl = `${window.location.origin}/product/${productId}`;
     const text = `Check out ${productName} on PUTHIYAM!`;
 
     try {
