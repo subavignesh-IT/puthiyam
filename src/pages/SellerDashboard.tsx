@@ -2387,7 +2387,7 @@ const SellerDashboard: React.FC = () => {
 
           {/* Sales Reports Tab */}
           <TabsContent value="reports" className="space-y-4">
-            <SalesReportDashboard />
+            <SalesReportDashboard sellerId={!isAdmin && isSeller ? user?.id : undefined} />
           </TabsContent>
 
           {/* Customers Tab */}
