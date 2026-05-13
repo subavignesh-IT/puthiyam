@@ -16,7 +16,6 @@ const ShareButton: React.FC<ShareButtonProps> = ({
   productId,
   productName,
   productImage,
-  price,
   className = '',
   variant = 'icon',
 }) => {
