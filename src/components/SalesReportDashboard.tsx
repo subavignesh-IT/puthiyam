@@ -112,7 +112,7 @@ const SalesReportDashboard: React.FC<SalesReportDashboardProps> = ({ sellerId })
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      let parsed = (data || []).map(o => ({
+      let parsed: Order[] = (data || []).map((o: any) => ({
         ...o,
         items: o.items as Order['items'],
       }));
