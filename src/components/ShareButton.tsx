@@ -62,7 +62,7 @@ const ShareButton: React.FC<ShareButtonProps> = ({
       toast({
         title: 'Link copied!',
         description: productImage
-          ? 'Product link copied. Image sharing not supported on this device.'
+          ? 'Product link copied. The shared link includes the product image preview!'
           : 'Product link copied to clipboard.',
       });
     } catch {
