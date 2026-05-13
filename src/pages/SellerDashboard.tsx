@@ -1948,6 +1948,7 @@ const SellerDashboard: React.FC = () => {
                 )}
               </CardContent>
             </Card>
+            </>)}
           </TabsContent>
 
           {/* Manage Products Tab */}
