@@ -39,9 +39,7 @@ const ShareButton: React.FC<ShareButtonProps> = ({
     e.preventDefault();
 
     const url = `${window.location.origin}/product/${productId}`;
-    const text = price
-      ? `Check out ${productName} for ₹${price} on PUTHIYAM!`
-      : `Check out ${productName} on PUTHIYAM!`;
+    const text = `Check out ${productName} on PUTHIYAM!`;
 
     try {
       const file = await fetchImageFile();
