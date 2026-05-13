@@ -46,7 +46,7 @@ const ShareButton: React.FC<ShareButtonProps> = ({
 
     try {
       const file = await fetchImageFile();
-      const shareData: ShareData & { files?: File[] } = { title: productName, text, url };
+      const shareData: ShareData & { files?: File[] } = { title: productName, text, url: shareUrl };
       if (file && (navigator as any).canShare?.({ files: [file] })) {
         shareData.files = [file];
       }
@@ -59,7 +59,7 @@ const ShareButton: React.FC<ShareButtonProps> = ({
     }
 
     try {
-      await navigator.clipboard.writeText(`${text} ${url}`);
+      await navigator.clipboard.writeText(`${text} ${fallbackUrl}`);
       toast({
         title: 'Link copied!',
         description: productImage
