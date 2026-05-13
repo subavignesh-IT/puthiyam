@@ -1191,7 +1191,7 @@ const SellerDashboard: React.FC = () => {
         </section>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-9' : 'grid-cols-4'}`}>
+          <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-9' : 'grid-cols-6'}`}>
             <TabsTrigger value="orders" className="flex items-center gap-1 text-xs">
               <ShoppingCart className="w-4 h-4" />
               <span className="hidden sm:inline">Orders</span>
@@ -1207,12 +1207,10 @@ const SellerDashboard: React.FC = () => {
                 )}
               </TabsTrigger>
             )}
-            {isAdmin && (
-              <TabsTrigger value="loyalty" className="flex items-center gap-1 text-xs">
-                <Gift className="w-4 h-4" />
-                <span className="hidden sm:inline">Loyalty</span>
-              </TabsTrigger>
-            )}
+            <TabsTrigger value="loyalty" className="flex items-center gap-1 text-xs">
+              <Gift className="w-4 h-4" />
+              <span className="hidden sm:inline">Loyalty</span>
+            </TabsTrigger>
             {isAdmin && (
               <TabsTrigger value="customers" className="flex items-center gap-1 text-xs">
                 <Users className="w-4 h-4" />
@@ -1233,12 +1231,10 @@ const SellerDashboard: React.FC = () => {
                 <span className="hidden sm:inline">Sellers</span>
               </TabsTrigger>
             )}
-            {isAdmin && (
-              <TabsTrigger value="reports" className="flex items-center gap-1 text-xs">
-                <BarChart3 className="w-4 h-4" />
-                <span className="hidden sm:inline">Reports</span>
-              </TabsTrigger>
-            )}
+            <TabsTrigger value="reports" className="flex items-center gap-1 text-xs">
+              <BarChart3 className="w-4 h-4" />
+              <span className="hidden sm:inline">Reports</span>
+            </TabsTrigger>
             <TabsTrigger value="settings" className="flex items-center gap-1 text-xs">
               <Settings className="w-4 h-4" />
               <span className="hidden sm:inline">Settings</span>
