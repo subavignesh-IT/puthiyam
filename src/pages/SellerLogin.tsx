@@ -157,9 +157,15 @@ const SellerLogin: React.FC = () => {
                     {loading ? 'Verifying...' : 'Login as Seller'}
                   </Button>
                 </form>
-                <div className="mt-4 text-center text-sm">
-                  <span className="text-muted-foreground">Are you a buyer? </span>
-                  <Link to="/login" className="text-primary hover:underline font-medium">Buyer Login</Link>
+                <div className="mt-4 text-center text-sm space-y-2">
+                  <div>
+                    <span className="text-muted-foreground">Are you a buyer? </span>
+                    <Link to="/login" className="text-primary hover:underline font-medium">Buyer Login</Link>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">New seller? </span>
+                    <Link to="/seller-signup" className="text-primary hover:underline font-medium">Register as Seller</Link>
+                  </div>
                 </div>
               </>
             )}
