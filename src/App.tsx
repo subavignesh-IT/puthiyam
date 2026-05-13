@@ -20,6 +20,7 @@ import SellerDashboard from "./pages/SellerDashboard";
 import SellerLogin from "./pages/SellerLogin";
 import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
+import SellerSignup from "./pages/SellerSignup";
 
 const queryClient = new QueryClient();
 
