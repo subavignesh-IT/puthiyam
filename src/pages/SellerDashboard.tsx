@@ -1523,6 +1523,72 @@ const SellerDashboard: React.FC = () => {
 
           {/* Loyalty Claims Tab */}
           <TabsContent value="loyalty" className="space-y-6">
+            {!isAdmin && isSeller && (() => {
+              const sellerProductIds = new Set(products.map(p => p.id));
+              const sellerOrders = orders.filter(o => (o.items || []).some((it: any) => sellerProductIds.has(it.id)));
+              const phones = new Set(sellerOrders.map(o => o.customer_phone));
+              const scopedClaims = loyaltyClaims.filter(c => phones.has(c.customer_phone));
+              const redeemedPerUser: Record<string, number> = {};
+              scopedClaims.filter(c => c.is_redeemed).forEach(c => {
+                redeemedPerUser[c.customer_phone] = (redeemedPerUser[c.customer_phone] || 0) + 1;
+              });
+              const customerStamps: Record<string, { name: string; phone: string; stamps: number }> = {};
+              sellerOrders.forEach(o => {
+                if ((o as any).loyalty_coupon_code) return;
+                if (o.total < loyaltyMinAmount) return;
+                const key = o.customer_phone;
+                if (!customerStamps[key]) customerStamps[key] = { name: o.customer_name, phone: o.customer_phone, stamps: 0 };
+                customerStamps[key].stamps += 1;
+              });
+              Object.keys(customerStamps).forEach(key => {
+                const r = redeemedPerUser[key] || 0;
+                customerStamps[key].stamps = Math.max(0, customerStamps[key].stamps - r * 10) % 10;
+              });
+              const list = Object.values(customerStamps).sort((a, b) => b.stamps - a.stamps);
+              return (
+                <>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <Card className="p-3 text-center"><p className="text-2xl font-bold text-primary">{scopedClaims.length}</p><p className="text-xs text-muted-foreground">Total Claims</p></Card>
+                    <Card className="p-3 text-center"><p className="text-2xl font-bold text-primary">{scopedClaims.filter(c => c.is_redeemed).length}</p><p className="text-xs text-muted-foreground">Redeemed</p></Card>
+                    <Card className="p-3 text-center"><p className="text-2xl font-bold text-primary">{scopedClaims.filter(c => !c.is_redeemed).length}</p><p className="text-xs text-muted-foreground">Pending</p></Card>
+                    <Card className="p-3 text-center"><p className="text-2xl font-bold text-primary">{list.filter(c => c.stamps > 0).length}</p><p className="text-xs text-muted-foreground">In Progress</p></Card>
+                  </div>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Gift className="w-5 h-5 text-primary" />
+                        Customer Loyalty Progress (Your Products)
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {list.length === 0 ? (
+                        <p className="text-center text-muted-foreground py-6">No loyalty activity for your products yet</p>
+                      ) : (
+                        <div className="grid gap-3">
+                          {list.map(cust => (
+                            <div key={cust.phone} className="flex items-center justify-between p-3 border rounded-lg">
+                              <div className="flex-1 min-w-0">
+                                <p className="font-semibold truncate">{cust.name}</p>
+                                <p className="text-xs text-muted-foreground">{cust.phone}</p>
+                              </div>
+                              <div className="flex items-center gap-2 flex-shrink-0">
+                                <div className="flex gap-0.5">
+                                  {Array.from({ length: 10 }).map((_, i) => (
+                                    <div key={i} className={`w-4 h-4 rounded-full border flex items-center justify-center text-[8px] ${i < cust.stamps ? 'bg-primary border-primary text-primary-foreground' : 'border-muted-foreground/30 text-muted-foreground/30'}`}>{i < cust.stamps ? '✓' : ''}</div>
+                                  ))}
+                                </div>
+                                <Badge variant="secondary" className="font-mono text-xs">{cust.stamps}/10</Badge>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </>
+              );
+            })()}
+            {isAdmin && (<>
             {/* Loyalty Settings */}
             <Card>
               <CardHeader>
