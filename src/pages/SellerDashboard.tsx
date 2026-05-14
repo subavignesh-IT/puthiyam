@@ -149,6 +149,25 @@ const SellerDashboard: React.FC = () => {
   const [loyaltyMinAmount, setLoyaltyMinAmount] = useState(200);
   const [loyaltyMinAmountInput, setLoyaltyMinAmountInput] = useState('200');
 
+  // Per-seller loyalty settings (seller_id -> settings)
+  interface LoyaltySetting {
+    seller_id: string;
+    enabled: boolean;
+    stamps_required: number;
+    reward_amount: number;
+    min_order_value: number;
+  }
+  const [loyaltySettingsMap, setLoyaltySettingsMap] = useState<Record<string, LoyaltySetting>>({});
+  const [sellerLoyaltyForm, setSellerLoyaltyForm] = useState<LoyaltySetting>({
+    seller_id: '',
+    enabled: true,
+    stamps_required: 10,
+    reward_amount: 50,
+    min_order_value: 0,
+  });
+  const [savingLoyaltySettings, setSavingLoyaltySettings] = useState(false);
+  const [adminOrdersSellerTab, setAdminOrdersSellerTab] = useState<string>('all');
+
   // Product form state
   const [productName, setProductName] = useState('');
   const [productDescription, setProductDescription] = useState('');
@@ -210,8 +229,67 @@ const SellerDashboard: React.FC = () => {
       fetchCustomers(),
       fetchLoyaltyClaims(),
       fetchLoyaltyMinAmount(),
+      fetchLoyaltySettings(),
     ]);
     setLoading(false);
+  };
+
+  const fetchLoyaltySettings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('seller_loyalty_settings' as any)
+        .select('*');
+      if (!error && data) {
+        const map: Record<string, LoyaltySetting> = {};
+        (data as any[]).forEach((s) => { map[s.seller_id] = s as LoyaltySetting; });
+        setLoyaltySettingsMap(map);
+      }
+    } catch (err) {
+      console.error('Error fetching loyalty settings:', err);
+    }
+  };
+
+  // Seed local form when user / settings load
+  useEffect(() => {
+    if (!user) return;
+    const existing = loyaltySettingsMap[user.id];
+    setSellerLoyaltyForm({
+      seller_id: user.id,
+      enabled: existing?.enabled ?? true,
+      stamps_required: existing?.stamps_required ?? 10,
+      reward_amount: existing?.reward_amount ?? 50,
+      min_order_value: existing?.min_order_value ?? 0,
+    });
+  }, [user, loyaltySettingsMap]);
+
+  const handleSaveSellerLoyaltySettings = async () => {
+    if (!user) return;
+    const f = sellerLoyaltyForm;
+    if (!Number.isInteger(f.stamps_required) || f.stamps_required < 1 || f.stamps_required > 50) {
+      toast({ title: 'Stamps required must be 1–50', variant: 'destructive' });
+      return;
+    }
+    if (f.reward_amount < 0 || f.min_order_value < 0) {
+      toast({ title: 'Amounts cannot be negative', variant: 'destructive' });
+      return;
+    }
+    setSavingLoyaltySettings(true);
+    const { error } = await supabase
+      .from('seller_loyalty_settings' as any)
+      .upsert({
+        seller_id: user.id,
+        enabled: f.enabled,
+        stamps_required: f.stamps_required,
+        reward_amount: f.reward_amount,
+        min_order_value: f.min_order_value,
+      } as any, { onConflict: 'seller_id' });
+    setSavingLoyaltySettings(false);
+    if (error) {
+      toast({ title: 'Could not save', description: error.message, variant: 'destructive' });
+      return;
+    }
+    setLoyaltySettingsMap((prev) => ({ ...prev, [user.id]: { ...f } }));
+    toast({ title: '✅ Loyalty settings saved' });
   };
 
   const fetchLoyaltyClaims = async () => {
@@ -1176,6 +1254,164 @@ const SellerDashboard: React.FC = () => {
     );
   }
 
+  // ---- Orders rendering helpers ----
+  const renderOrdersTable = (list: Order[], emptyText = 'No orders yet') => (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <ShoppingCart className="w-5 h-5" />
+          Orders ({list.length})
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {list.length === 0 ? (
+          <p className="text-center text-muted-foreground py-8">{emptyText}</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Bill No.</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Items</TableHead>
+                  <TableHead>Total</TableHead>
+                  <TableHead>Payment</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {list.map((order) => (
+                  <TableRow key={order.id} className="hover:bg-muted/50 transition-colors">
+                    <TableCell className="font-mono font-bold text-primary">
+                      {order.order_number || getOrderIdForDisplay(order.id)}
+                    </TableCell>
+                    <TableCell className="text-sm">{formatDate(order.created_at)}</TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">{order.customer_name}</p>
+                        <p className="text-xs text-muted-foreground">{order.customer_phone}</p>
+                        {order.customer_address && (
+                          <p className="text-xs text-muted-foreground truncate max-w-[150px]">{order.customer_address}</p>
+                        )}
+                        {(order as any).loyalty_coupon_code && (
+                          <Badge variant="outline" className="mt-1 text-[10px] border-accent text-accent font-bold">🎁 Offer Claimed</Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        {order.items.map((item, i) => (
+                          <div key={i}>
+                            {item.name}
+                            {item.selectedVariant && ` (${item.selectedVariant.weight})`}
+                            {' × '}{item.quantity}
+                          </div>
+                        ))}
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-semibold">₹{order.total}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-col gap-1">
+                        <Select value={order.payment_status} onValueChange={(value) => updatePaymentStatus(order.id, value)}>
+                          <SelectTrigger className="w-24 h-7"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {PAYMENT_STATUSES.map((s) => (<SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>))}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground">{order.payment_method}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={`${getStatusColor(order.order_status)} text-white`}>{order.order_status}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Select value={order.order_status} onValueChange={(value) => updateOrderStatus(order.id, value)}>
+                          <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {ORDER_STATUSES.map((s) => (<SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>))}
+                          </SelectContent>
+                        </Select>
+                        <Button variant="outline" size="icon" onClick={() => shareOrderBill(order)} title="Share Bill">
+                          <Share2 className="w-4 h-4" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Order?</AlertDialogTitle>
+                              <AlertDialogDescription>This will permanently delete this order. This action cannot be undone.</AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => deleteOrder(order.id)}>Delete</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                      <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
+                        <OrderBillImage
+                          ref={(el) => { billRefs.current[order.id] = el; }}
+                          orderId={order.order_number || order.id}
+                          customerName={order.customer_name}
+                          customerPhone={order.customer_phone}
+                          customerAddress={order.customer_address}
+                          deliveryType={order.delivery_type}
+                          paymentMethod={order.payment_method}
+                          paymentStatus={order.payment_status}
+                          orderStatus={order.order_status}
+                          items={order.items}
+                          subtotal={order.subtotal}
+                          shippingCost={order.shipping_cost}
+                          total={order.total}
+                          createdAt={order.created_at}
+                          loyaltyInfo={userLoyaltyMap[order.user_id] ? { stamps: userLoyaltyMap[order.user_id] % 11 } : null}
+                        />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+
+  // Build seller list for admin from products
+  const adminSellerGroups: Array<{ id: string; name: string; productIds: Set<string>; orders: Order[] }> = (() => {
+    if (!isAdmin) return [];
+    const groups: Record<string, { id: string; name: string; productIds: Set<string> }> = {};
+    products.forEach((p) => {
+      if (!groups[p.seller_id]) {
+        const profile = customers.find((c) => c.user_id === p.seller_id);
+        groups[p.seller_id] = {
+          id: p.seller_id,
+          name: profile?.full_name || (p.seller_id === user?.id ? 'You (Owner)' : 'Unknown Seller'),
+          productIds: new Set<string>(),
+        };
+      }
+      groups[p.seller_id].productIds.add(p.id);
+    });
+    return Object.values(groups).map((g) => {
+      const sellerOrders: Order[] = [];
+      orders.forEach((o) => {
+        const items = (o.items || []).filter((it: any) => g.productIds.has(it.id));
+        if (items.length === 0) return;
+        const subtotal = items.reduce((s, it) => s + it.price * it.quantity, 0);
+        sellerOrders.push({ ...o, items, subtotal, shipping_cost: 0, total: subtotal });
+      });
+      return { ...g, orders: sellerOrders };
+    }).sort((a, b) => b.orders.length - a.orders.length);
+  })();
+
   return (
     <div className="min-h-screen bg-background pb-20">
       <Header />
@@ -1243,176 +1479,31 @@ const SellerDashboard: React.FC = () => {
 
           {/* Orders Tab */}
           <TabsContent value="orders" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <ShoppingCart className="w-5 h-5" />
-                  All Orders ({orders.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {orders.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">No orders yet</p>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                          <TableRow>
-                          <TableHead>Bill No.</TableHead>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Customer</TableHead>
-                          <TableHead>Items</TableHead>
-                          <TableHead>Total</TableHead>
-                          <TableHead>Payment</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {orders.map((order) => (
-                          <TableRow key={order.id} className="hover:bg-muted/50 transition-colors">
-                            <TableCell className="font-mono font-bold text-primary">
-                              {order.order_number || getOrderIdForDisplay(order.id)}
-                            </TableCell>
-                            <TableCell className="text-sm">
-                              {formatDate(order.created_at)}
-                            </TableCell>
-                            <TableCell>
-                              <div>
-                                <p className="font-medium">{order.customer_name}</p>
-                                <p className="text-xs text-muted-foreground">{order.customer_phone}</p>
-                                {order.customer_address && (
-                                  <p className="text-xs text-muted-foreground truncate max-w-[150px]">
-                                    {order.customer_address}
-                                  </p>
-                                )}
-                                {/* Loyalty coupon claimed indicator */}
-                                {(order as any).loyalty_coupon_code && (
-                                  <Badge variant="outline" className="mt-1 text-[10px] border-accent text-accent font-bold">
-                                    🎁 Offer Claimed
-                                  </Badge>
-                                )}
-                                {/* Coupon code area */}
-                                {!(order as any).loyalty_coupon_code && userLoyaltyMap[order.user_id] && userLoyaltyMap[order.user_id] % 11 >= 10 && (
-                                  <Badge variant="outline" className="mt-1 text-[10px] border-primary/30 text-primary">
-                                    🎟️ Loyalty Coupon Earned
-                                  </Badge>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="text-sm">
-                                {order.items.map((item, i) => (
-                                  <div key={i}>
-                                    {item.name}
-                                    {item.selectedVariant && ` (${item.selectedVariant.weight})`}
-                                    {' × '}{item.quantity}
-                                  </div>
-                                ))}
-                              </div>
-                            </TableCell>
-                            <TableCell className="font-semibold">₹{order.total}</TableCell>
-                            <TableCell>
-                              <div className="flex flex-col gap-1">
-                                <Select
-                                  value={order.payment_status}
-                                  onValueChange={(value) => updatePaymentStatus(order.id, value)}
-                                >
-                                  <SelectTrigger className="w-24 h-7">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {PAYMENT_STATUSES.map((status) => (
-                                      <SelectItem key={status.value} value={status.value}>
-                                        {status.label}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                <p className="text-xs text-muted-foreground">{order.payment_method}</p>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <Badge className={`${getStatusColor(order.order_status)} text-white`}>
-                                {order.order_status}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <Select
-                                  value={order.order_status}
-                                  onValueChange={(value) => updateOrderStatus(order.id, value)}
-                                >
-                                  <SelectTrigger className="w-28">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {ORDER_STATUSES.map((status) => (
-                                      <SelectItem key={status.value} value={status.value}>
-                                        {status.label}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                <Button
-                                  variant="outline"
-                                  size="icon"
-                                  onClick={() => shareOrderBill(order)}
-                                  title="Share Bill"
-                                >
-                                  <Share2 className="w-4 h-4" />
-                                </Button>
-                                <AlertDialog>
-                                  <AlertDialogTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                                      <Trash2 className="w-4 h-4" />
-                                    </Button>
-                                  </AlertDialogTrigger>
-                                  <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                      <AlertDialogTitle>Delete Order?</AlertDialogTitle>
-                                      <AlertDialogDescription>
-                                        This will permanently delete this order. This action cannot be undone.
-                                      </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                      <AlertDialogAction onClick={() => deleteOrder(order.id)}>
-                                        Delete
-                                      </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                  </AlertDialogContent>
-                                </AlertDialog>
-                              </div>
-                              {/* Hidden Bill Image for this order */}
-                              <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
-                                <OrderBillImage
-                                  ref={(el) => { billRefs.current[order.id] = el; }}
-                                  orderId={order.order_number || order.id}
-                                  customerName={order.customer_name}
-                                  customerPhone={order.customer_phone}
-                                  customerAddress={order.customer_address}
-                                  deliveryType={order.delivery_type}
-                                  paymentMethod={order.payment_method}
-                                  paymentStatus={order.payment_status}
-                                  orderStatus={order.order_status}
-                                  items={order.items}
-                                  subtotal={order.subtotal}
-                                  shippingCost={order.shipping_cost}
-                                  total={order.total}
-                                  createdAt={order.created_at}
-                                  loyaltyInfo={userLoyaltyMap[order.user_id] ? { stamps: userLoyaltyMap[order.user_id] % 11 } : null}
-                                />
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            {isAdmin ? (
+              <Tabs value={adminOrdersSellerTab} onValueChange={setAdminOrdersSellerTab} className="space-y-4">
+                <TabsList className="flex flex-wrap h-auto gap-1 justify-start">
+                  <TabsTrigger value="all" className="text-xs">
+                    All ({orders.length})
+                  </TabsTrigger>
+                  {adminSellerGroups.map((g) => (
+                    <TabsTrigger key={g.id} value={g.id} className="text-xs flex items-center gap-1">
+                      <Store className="w-3 h-3" />
+                      {g.name} ({g.orders.length})
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+                <TabsContent value="all">
+                  {renderOrdersTable(orders)}
+                </TabsContent>
+                {adminSellerGroups.map((g) => (
+                  <TabsContent key={g.id} value={g.id}>
+                    {renderOrdersTable(g.orders, `No orders for ${g.name} yet`)}
+                  </TabsContent>
+                ))}
+              </Tabs>
+            ) : (
+              renderOrdersTable(orders)
+            )}
           </TabsContent>
 
           {/* Requested Products Tab */}
@@ -1523,6 +1614,64 @@ const SellerDashboard: React.FC = () => {
 
           {/* Loyalty Claims Tab */}
           <TabsContent value="loyalty" className="space-y-6">
+            {!isAdmin && isSeller && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Settings className="w-5 h-5 text-primary" />
+                    My Loyalty Settings
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className="text-sm font-medium">Loyalty Program Enabled</Label>
+                      <p className="text-xs text-muted-foreground">Turn loyalty stamps on or off for your customers.</p>
+                    </div>
+                    <Switch
+                      checked={sellerLoyaltyForm.enabled}
+                      onCheckedChange={(checked) => setSellerLoyaltyForm((f) => ({ ...f, enabled: checked }))}
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                      <Label className="text-sm">Stamps Required</Label>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={50}
+                        value={sellerLoyaltyForm.stamps_required}
+                        onChange={(e) => setSellerLoyaltyForm((f) => ({ ...f, stamps_required: parseInt(e.target.value || '0', 10) }))}
+                      />
+                      <p className="text-[11px] text-muted-foreground mt-1">Stamps to earn one reward.</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm">Reward Amount (₹)</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={sellerLoyaltyForm.reward_amount}
+                        onChange={(e) => setSellerLoyaltyForm((f) => ({ ...f, reward_amount: parseFloat(e.target.value || '0') }))}
+                      />
+                      <p className="text-[11px] text-muted-foreground mt-1">Discount given when card is full.</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm">Min Order Value (₹)</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={sellerLoyaltyForm.min_order_value}
+                        onChange={(e) => setSellerLoyaltyForm((f) => ({ ...f, min_order_value: parseFloat(e.target.value || '0') }))}
+                      />
+                      <p className="text-[11px] text-muted-foreground mt-1">Minimum order to earn one stamp.</p>
+                    </div>
+                  </div>
+                  <Button onClick={handleSaveSellerLoyaltySettings} disabled={savingLoyaltySettings} size="sm">
+                    {savingLoyaltySettings ? 'Saving…' : 'Save Loyalty Settings'}
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
             {!isAdmin && isSeller && (() => {
               const sellerProductIds = new Set(products.map(p => p.id));
               const sellerOrders = orders.filter(o => (o.items || []).some((it: any) => sellerProductIds.has(it.id)));
@@ -2649,6 +2798,63 @@ const SellerDashboard: React.FC = () => {
 
           {/* Seller Products Tab - Admin only */}
           <TabsContent value="seller-products" className="space-y-4">
+            {/* Sellers overview */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="w-5 h-5 text-primary" />
+                  Sellers Overview ({adminSellerGroups.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {adminSellerGroups.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-6">No sellers yet</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Seller</TableHead>
+                          <TableHead>Phone</TableHead>
+                          <TableHead>Joined</TableHead>
+                          <TableHead>Products</TableHead>
+                          <TableHead>Orders</TableHead>
+                          <TableHead>Revenue</TableHead>
+                          <TableHead>Loyalty</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {adminSellerGroups.map((g) => {
+                          const profile = customers.find((c) => c.user_id === g.id);
+                          const revenue = g.orders.reduce((s, o) => s + o.total, 0);
+                          const ls = loyaltySettingsMap[g.id];
+                          return (
+                            <TableRow key={g.id}>
+                              <TableCell className="font-medium">{g.name}</TableCell>
+                              <TableCell className="text-sm">{profile?.phone || 'N/A'}</TableCell>
+                              <TableCell className="text-sm">{profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : '—'}</TableCell>
+                              <TableCell>{g.productIds.size}</TableCell>
+                              <TableCell>{g.orders.length}</TableCell>
+                              <TableCell className="font-semibold text-primary">₹{revenue.toLocaleString()}</TableCell>
+                              <TableCell className="text-xs">
+                                {ls ? (
+                                  <span>
+                                    {ls.enabled ? '✅' : '⏸'} {ls.stamps_required} stamps · ₹{ls.reward_amount} · min ₹{ls.min_order_value}
+                                  </span>
+                                ) : (
+                                  <span className="text-muted-foreground">Default</span>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">

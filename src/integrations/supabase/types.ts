@@ -433,6 +433,39 @@ export type Database = {
         }
         Relationships: []
       }
+      seller_loyalty_settings: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          id: string
+          min_order_value: number
+          reward_amount: number
+          seller_id: string
+          stamps_required: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          min_order_value?: number
+          reward_amount?: number
+          seller_id: string
+          stamps_required?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          min_order_value?: number
+          reward_amount?: number
+          seller_id?: string
+          stamps_required?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
