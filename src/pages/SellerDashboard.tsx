@@ -149,6 +149,25 @@ const SellerDashboard: React.FC = () => {
   const [loyaltyMinAmount, setLoyaltyMinAmount] = useState(200);
   const [loyaltyMinAmountInput, setLoyaltyMinAmountInput] = useState('200');
 
+  // Per-seller loyalty settings (seller_id -> settings)
+  interface LoyaltySetting {
+    seller_id: string;
+    enabled: boolean;
+    stamps_required: number;
+    reward_amount: number;
+    min_order_value: number;
+  }
+  const [loyaltySettingsMap, setLoyaltySettingsMap] = useState<Record<string, LoyaltySetting>>({});
+  const [sellerLoyaltyForm, setSellerLoyaltyForm] = useState<LoyaltySetting>({
+    seller_id: '',
+    enabled: true,
+    stamps_required: 10,
+    reward_amount: 50,
+    min_order_value: 0,
+  });
+  const [savingLoyaltySettings, setSavingLoyaltySettings] = useState(false);
+  const [adminOrdersSellerTab, setAdminOrdersSellerTab] = useState<string>('all');
+
   // Product form state
   const [productName, setProductName] = useState('');
   const [productDescription, setProductDescription] = useState('');
