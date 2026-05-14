@@ -229,8 +229,67 @@ const SellerDashboard: React.FC = () => {
       fetchCustomers(),
       fetchLoyaltyClaims(),
       fetchLoyaltyMinAmount(),
+      fetchLoyaltySettings(),
     ]);
     setLoading(false);
+  };
+
+  const fetchLoyaltySettings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('seller_loyalty_settings' as any)
+        .select('*');
+      if (!error && data) {
+        const map: Record<string, LoyaltySetting> = {};
+        (data as any[]).forEach((s) => { map[s.seller_id] = s as LoyaltySetting; });
+        setLoyaltySettingsMap(map);
+      }
+    } catch (err) {
+      console.error('Error fetching loyalty settings:', err);
+    }
+  };
+
+  // Seed local form when user / settings load
+  useEffect(() => {
+    if (!user) return;
+    const existing = loyaltySettingsMap[user.id];
+    setSellerLoyaltyForm({
+      seller_id: user.id,
+      enabled: existing?.enabled ?? true,
+      stamps_required: existing?.stamps_required ?? 10,
+      reward_amount: existing?.reward_amount ?? 50,
+      min_order_value: existing?.min_order_value ?? 0,
+    });
+  }, [user, loyaltySettingsMap]);
+
+  const handleSaveSellerLoyaltySettings = async () => {
+    if (!user) return;
+    const f = sellerLoyaltyForm;
+    if (!Number.isInteger(f.stamps_required) || f.stamps_required < 1 || f.stamps_required > 50) {
+      toast({ title: 'Stamps required must be 1–50', variant: 'destructive' });
+      return;
+    }
+    if (f.reward_amount < 0 || f.min_order_value < 0) {
+      toast({ title: 'Amounts cannot be negative', variant: 'destructive' });
+      return;
+    }
+    setSavingLoyaltySettings(true);
+    const { error } = await supabase
+      .from('seller_loyalty_settings' as any)
+      .upsert({
+        seller_id: user.id,
+        enabled: f.enabled,
+        stamps_required: f.stamps_required,
+        reward_amount: f.reward_amount,
+        min_order_value: f.min_order_value,
+      } as any, { onConflict: 'seller_id' });
+    setSavingLoyaltySettings(false);
+    if (error) {
+      toast({ title: 'Could not save', description: error.message, variant: 'destructive' });
+      return;
+    }
+    setLoyaltySettingsMap((prev) => ({ ...prev, [user.id]: { ...f } }));
+    toast({ title: '✅ Loyalty settings saved' });
   };
 
   const fetchLoyaltyClaims = async () => {
