@@ -1614,6 +1614,64 @@ const SellerDashboard: React.FC = () => {
 
           {/* Loyalty Claims Tab */}
           <TabsContent value="loyalty" className="space-y-6">
+            {!isAdmin && isSeller && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Settings className="w-5 h-5 text-primary" />
+                    My Loyalty Settings
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className="text-sm font-medium">Loyalty Program Enabled</Label>
+                      <p className="text-xs text-muted-foreground">Turn loyalty stamps on or off for your customers.</p>
+                    </div>
+                    <Switch
+                      checked={sellerLoyaltyForm.enabled}
+                      onCheckedChange={(checked) => setSellerLoyaltyForm((f) => ({ ...f, enabled: checked }))}
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                      <Label className="text-sm">Stamps Required</Label>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={50}
+                        value={sellerLoyaltyForm.stamps_required}
+                        onChange={(e) => setSellerLoyaltyForm((f) => ({ ...f, stamps_required: parseInt(e.target.value || '0', 10) }))}
+                      />
+                      <p className="text-[11px] text-muted-foreground mt-1">Stamps to earn one reward.</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm">Reward Amount (₹)</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={sellerLoyaltyForm.reward_amount}
+                        onChange={(e) => setSellerLoyaltyForm((f) => ({ ...f, reward_amount: parseFloat(e.target.value || '0') }))}
+                      />
+                      <p className="text-[11px] text-muted-foreground mt-1">Discount given when card is full.</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm">Min Order Value (₹)</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={sellerLoyaltyForm.min_order_value}
+                        onChange={(e) => setSellerLoyaltyForm((f) => ({ ...f, min_order_value: parseFloat(e.target.value || '0') }))}
+                      />
+                      <p className="text-[11px] text-muted-foreground mt-1">Minimum order to earn one stamp.</p>
+                    </div>
+                  </div>
+                  <Button onClick={handleSaveSellerLoyaltySettings} disabled={savingLoyaltySettings} size="sm">
+                    {savingLoyaltySettings ? 'Saving…' : 'Save Loyalty Settings'}
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
             {!isAdmin && isSeller && (() => {
               const sellerProductIds = new Set(products.map(p => p.id));
               const sellerOrders = orders.filter(o => (o.items || []).some((it: any) => sellerProductIds.has(it.id)));
