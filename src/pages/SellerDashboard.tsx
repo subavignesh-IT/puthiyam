@@ -1254,6 +1254,164 @@ const SellerDashboard: React.FC = () => {
     );
   }
 
+  // ---- Orders rendering helpers ----
+  const renderOrdersTable = (list: Order[], emptyText = 'No orders yet') => (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <ShoppingCart className="w-5 h-5" />
+          Orders ({list.length})
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {list.length === 0 ? (
+          <p className="text-center text-muted-foreground py-8">{emptyText}</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Bill No.</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Items</TableHead>
+                  <TableHead>Total</TableHead>
+                  <TableHead>Payment</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {list.map((order) => (
+                  <TableRow key={order.id} className="hover:bg-muted/50 transition-colors">
+                    <TableCell className="font-mono font-bold text-primary">
+                      {order.order_number || getOrderIdForDisplay(order.id)}
+                    </TableCell>
+                    <TableCell className="text-sm">{formatDate(order.created_at)}</TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">{order.customer_name}</p>
+                        <p className="text-xs text-muted-foreground">{order.customer_phone}</p>
+                        {order.customer_address && (
+                          <p className="text-xs text-muted-foreground truncate max-w-[150px]">{order.customer_address}</p>
+                        )}
+                        {(order as any).loyalty_coupon_code && (
+                          <Badge variant="outline" className="mt-1 text-[10px] border-accent text-accent font-bold">🎁 Offer Claimed</Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        {order.items.map((item, i) => (
+                          <div key={i}>
+                            {item.name}
+                            {item.selectedVariant && ` (${item.selectedVariant.weight})`}
+                            {' × '}{item.quantity}
+                          </div>
+                        ))}
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-semibold">₹{order.total}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-col gap-1">
+                        <Select value={order.payment_status} onValueChange={(value) => updatePaymentStatus(order.id, value)}>
+                          <SelectTrigger className="w-24 h-7"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {PAYMENT_STATUSES.map((s) => (<SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>))}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground">{order.payment_method}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={`${getStatusColor(order.order_status)} text-white`}>{order.order_status}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Select value={order.order_status} onValueChange={(value) => updateOrderStatus(order.id, value)}>
+                          <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {ORDER_STATUSES.map((s) => (<SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>))}
+                          </SelectContent>
+                        </Select>
+                        <Button variant="outline" size="icon" onClick={() => shareOrderBill(order)} title="Share Bill">
+                          <Share2 className="w-4 h-4" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Order?</AlertDialogTitle>
+                              <AlertDialogDescription>This will permanently delete this order. This action cannot be undone.</AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => deleteOrder(order.id)}>Delete</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                      <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
+                        <OrderBillImage
+                          ref={(el) => { billRefs.current[order.id] = el; }}
+                          orderId={order.order_number || order.id}
+                          customerName={order.customer_name}
+                          customerPhone={order.customer_phone}
+                          customerAddress={order.customer_address}
+                          deliveryType={order.delivery_type}
+                          paymentMethod={order.payment_method}
+                          paymentStatus={order.payment_status}
+                          orderStatus={order.order_status}
+                          items={order.items}
+                          subtotal={order.subtotal}
+                          shippingCost={order.shipping_cost}
+                          total={order.total}
+                          createdAt={order.created_at}
+                          loyaltyInfo={userLoyaltyMap[order.user_id] ? { stamps: userLoyaltyMap[order.user_id] % 11 } : null}
+                        />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+
+  // Build seller list for admin from products
+  const adminSellerGroups: Array<{ id: string; name: string; productIds: Set<string>; orders: Order[] }> = (() => {
+    if (!isAdmin) return [];
+    const groups: Record<string, { id: string; name: string; productIds: Set<string> }> = {};
+    products.forEach((p) => {
+      if (!groups[p.seller_id]) {
+        const profile = customers.find((c) => c.user_id === p.seller_id);
+        groups[p.seller_id] = {
+          id: p.seller_id,
+          name: profile?.full_name || (p.seller_id === user?.id ? 'You (Owner)' : 'Unknown Seller'),
+          productIds: new Set<string>(),
+        };
+      }
+      groups[p.seller_id].productIds.add(p.id);
+    });
+    return Object.values(groups).map((g) => {
+      const sellerOrders: Order[] = [];
+      orders.forEach((o) => {
+        const items = (o.items || []).filter((it: any) => g.productIds.has(it.id));
+        if (items.length === 0) return;
+        const subtotal = items.reduce((s, it) => s + it.price * it.quantity, 0);
+        sellerOrders.push({ ...o, items, subtotal, shipping_cost: 0, total: subtotal });
+      });
+      return { ...g, orders: sellerOrders };
+    }).sort((a, b) => b.orders.length - a.orders.length);
+  })();
+
   return (
     <div className="min-h-screen bg-background pb-20">
       <Header />
