@@ -1385,9 +1385,8 @@ const SellerDashboard: React.FC = () => {
     </Card>
   );
 
-  // Build seller list for admin from products
+  // Build seller list (used by admin cross-seller view, and to scope each seller's own orders)
   const adminSellerGroups: Array<{ id: string; name: string; productIds: Set<string>; orders: Order[] }> = (() => {
-    if (!isAdmin) return [];
     const groups: Record<string, { id: string; name: string; productIds: Set<string> }> = {};
     products.forEach((p) => {
       if (!groups[p.seller_id]) {
@@ -1412,6 +1411,13 @@ const SellerDashboard: React.FC = () => {
     }).sort((a, b) => b.orders.length - a.orders.length);
   })();
 
+  // Orders that belong to the currently-signed-in seller (their own products only)
+  const myOrders: Order[] = (() => {
+    if (isAdmin) return orders; // admins see everything in their own seller view; their cross-seller view is separate
+    const mine = adminSellerGroups.find((g) => g.id === user?.id);
+    return mine ? mine.orders : [];
+  })();
+
   return (
     <div className="min-h-screen bg-background pb-20">
       <Header />
@@ -1425,6 +1431,37 @@ const SellerDashboard: React.FC = () => {
             <p className="opacity-90">Manage your products and orders</p>
           </div>
         </section>
+
+        {isAdmin && (
+          <section className="mb-10 rounded-2xl border border-primary/30 bg-primary/5 p-4 sm:p-6 shadow-soft">
+            <div className="flex items-center gap-2 mb-4">
+              <Store className="w-5 h-5 text-primary" />
+              <h2 className="font-serif text-xl font-bold text-foreground">Admin Dashboard</h2>
+              <span className="text-xs text-muted-foreground ml-2">Cross-seller orders</span>
+            </div>
+            <Tabs value={adminOrdersSellerTab} onValueChange={setAdminOrdersSellerTab} className="space-y-4">
+              <TabsList className="flex flex-wrap h-auto gap-1 justify-start">
+                <TabsTrigger value="all" className="text-xs">
+                  All ({orders.length})
+                </TabsTrigger>
+                {adminSellerGroups.map((g) => (
+                  <TabsTrigger key={g.id} value={g.id} className="text-xs flex items-center gap-1">
+                    <Store className="w-3 h-3" />
+                    {g.name} ({g.orders.length})
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+              <TabsContent value="all">
+                {renderOrdersTable(orders)}
+              </TabsContent>
+              {adminSellerGroups.map((g) => (
+                <TabsContent key={g.id} value={g.id}>
+                  {renderOrdersTable(g.orders, `No orders for ${g.name} yet`)}
+                </TabsContent>
+              ))}
+            </Tabs>
+          </section>
+        )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-9' : 'grid-cols-6'}`}>
@@ -1477,33 +1514,9 @@ const SellerDashboard: React.FC = () => {
             </TabsTrigger>
           </TabsList>
 
-          {/* Orders Tab */}
+          {/* Orders Tab — only this seller's own orders */}
           <TabsContent value="orders" className="space-y-4">
-            {isAdmin ? (
-              <Tabs value={adminOrdersSellerTab} onValueChange={setAdminOrdersSellerTab} className="space-y-4">
-                <TabsList className="flex flex-wrap h-auto gap-1 justify-start">
-                  <TabsTrigger value="all" className="text-xs">
-                    All ({orders.length})
-                  </TabsTrigger>
-                  {adminSellerGroups.map((g) => (
-                    <TabsTrigger key={g.id} value={g.id} className="text-xs flex items-center gap-1">
-                      <Store className="w-3 h-3" />
-                      {g.name} ({g.orders.length})
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-                <TabsContent value="all">
-                  {renderOrdersTable(orders)}
-                </TabsContent>
-                {adminSellerGroups.map((g) => (
-                  <TabsContent key={g.id} value={g.id}>
-                    {renderOrdersTable(g.orders, `No orders for ${g.name} yet`)}
-                  </TabsContent>
-                ))}
-              </Tabs>
-            ) : (
-              renderOrdersTable(orders)
-            )}
+            {renderOrdersTable(myOrders)}
           </TabsContent>
 
           {/* Requested Products Tab */}
