@@ -137,14 +137,26 @@
 }
 
 /* --- Glassmorphism --- */
+/* IMPORTANT: do NOT apply backdrop-filter to page-level wrappers (.bg-background),
+   because that creates a containing block which breaks `position: sticky` /
+   `position: fixed` for the header and bottom nav, making them scroll away. */
 [data-ui-style="glassmorphism"] .bg-card,
-[data-ui-style="glassmorphism"] [class*="CardContent"],
-[data-ui-style="glassmorphism"] header,
-[data-ui-style="glassmorphism"] .bg-background {
-  backdrop-filter: blur(12px) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
-  background: hsl(var(--card) / 0.7) !important;
-  border: 1px solid hsl(var(--primary) / 0.15) !important;
+[data-ui-style="glassmorphism"] [class*="CardContent"] {
+  backdrop-filter: blur(14px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(140%) !important;
+  background: hsl(var(--card) / 0.6) !important;
+  border: 1px solid hsl(var(--primary) / 0.18) !important;
+  box-shadow: 0 8px 32px hsl(var(--foreground) / 0.08) !important;
+}
+
+/* Sticky / fixed bars: keep them translucent + blurred but never break stickiness */
+[data-ui-style="glassmorphism"] header.sticky,
+[data-ui-style="glassmorphism"] nav.fixed {
+  backdrop-filter: blur(18px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(160%) !important;
+  background: hsl(var(--background) / 0.55) !important;
+  border-color: hsl(var(--primary) / 0.18) !important;
+  box-shadow: 0 4px 24px hsl(var(--foreground) / 0.08) !important;
 }
 [data-ui-style="glassmorphism"] button {
   backdrop-filter: blur(8px);
