@@ -1,0 +1,231 @@
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Store, Trash2 } from 'lucide-react';
+import Header from '@/components/Header';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { useAuth } from '@/hooks/useAuth';
+import { useAdmin } from '@/hooks/useAdmin';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
+
+const ORDER_STATUSES = [
+  { value: 'pending', label: 'Pending' },
+  { value: 'processing', label: 'Processing' },
+  { value: 'waiting', label: 'Waiting' },
+  { value: 'shipping', label: 'Shipping' },
+  { value: 'delivered', label: 'Delivered' },
+  { value: 'cancelled', label: 'Cancelled' },
+];
+
+const PAYMENT_STATUSES = [
+  { value: 'pending', label: 'Pending' },
+  { value: 'paid', label: 'Paid' },
+  { value: 'failed', label: 'Failed' },
+  { value: 'refunded', label: 'Refunded' },
+];
+
+const statusColor = (s: string) => ({
+  pending: 'bg-yellow-500', processing: 'bg-blue-500', waiting: 'bg-orange-500',
+  shipping: 'bg-purple-500', delivered: 'bg-green-500', cancelled: 'bg-red-500',
+}[s] || 'bg-gray-500');
+
+interface Order {
+  id: string; order_number?: string | null; user_id: string;
+  customer_name: string; customer_phone: string;
+  items: any[]; subtotal: number; shipping_cost: number; total: number;
+  payment_method: string; payment_status: string; order_status: string;
+  created_at: string;
+}
+
+const AdminDashboard = () => {
+  const { user, loading: authLoading } = useAuth();
+  const { isAdmin, loading: adminLoading } = useAdmin();
+  const navigate = useNavigate();
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [products, setProducts] = useState<{ id: string; seller_id: string }[]>([]);
+  const [profiles, setProfiles] = useState<{ user_id: string; full_name: string | null }[]>([]);
+  const [tab, setTab] = useState('all');
+
+  useEffect(() => {
+    if (authLoading || adminLoading) return;
+    if (!user) { navigate('/login'); return; }
+    if (!isAdmin) { navigate('/seller'); return; }
+    (async () => {
+      const [{ data: o }, { data: p }, { data: pr }] = await Promise.all([
+        supabase.from('orders').select('*').order('created_at', { ascending: false }),
+        supabase.from('products').select('id, seller_id'),
+        supabase.from('profiles').select('user_id, full_name'),
+      ]);
+      setOrders((o as any) || []);
+      setProducts((p as any) || []);
+      setProfiles((pr as any) || []);
+    })();
+  }, [user, isAdmin, authLoading, adminLoading, navigate]);
+
+  const sellerGroups = (() => {
+    const groups: Record<string, { id: string; name: string; productIds: Set<string> }> = {};
+    products.forEach((p) => {
+      if (!groups[p.seller_id]) {
+        const prof = profiles.find((x) => x.user_id === p.seller_id);
+        groups[p.seller_id] = {
+          id: p.seller_id,
+          name: prof?.full_name || 'Unknown Seller',
+          productIds: new Set(),
+        };
+      }
+      groups[p.seller_id].productIds.add(p.id);
+    });
+    return Object.values(groups).map((g) => {
+      const sellerOrders: Order[] = [];
+      orders.forEach((o) => {
+        const items = (o.items || []).filter((it: any) => g.productIds.has(it.id));
+        if (items.length === 0) return;
+        const subtotal = items.reduce((s, it) => s + it.price * it.quantity, 0);
+        sellerOrders.push({ ...o, items, subtotal, shipping_cost: 0, total: subtotal });
+      });
+      return { ...g, orders: sellerOrders };
+    }).sort((a, b) => b.orders.length - a.orders.length);
+  })();
+
+  const updateOrder = async (id: string, field: 'order_status' | 'payment_status', value: string) => {
+    const { error } = await supabase.from('orders').update({ [field]: value }).eq('id', id);
+    if (error) { toast({ title: 'Update failed', description: error.message, variant: 'destructive' }); return; }
+    setOrders((prev) => prev.map((o) => o.id === id ? { ...o, [field]: value } : o));
+    toast({ title: 'Updated' });
+  };
+
+  const deleteOrder = async (id: string) => {
+    const { error } = await supabase.from('orders').delete().eq('id', id);
+    if (error) { toast({ title: 'Delete failed', description: error.message, variant: 'destructive' }); return; }
+    setOrders((prev) => prev.filter((o) => o.id !== id));
+    toast({ title: 'Order deleted' });
+  };
+
+  const renderTable = (list: Order[], emptyText = 'No orders yet') => (
+    <Card>
+      <CardHeader><CardTitle>Orders ({list.length})</CardTitle></CardHeader>
+      <CardContent>
+        {list.length === 0 ? (
+          <p className="text-center py-8 text-muted-foreground">{emptyText}</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Order</TableHead>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Items</TableHead>
+                  <TableHead>Total</TableHead>
+                  <TableHead>Payment</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {list.map((o) => (
+                  <TableRow key={o.id}>
+                    <TableCell className="font-mono text-xs">{o.order_number || o.id.slice(0, 8)}</TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        <div className="font-medium">{o.customer_name}</div>
+                        <div className="text-xs text-muted-foreground">{o.customer_phone}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        {o.items.map((it: any, i: number) => (
+                          <div key={i}>{it.name}{it.selectedVariant && ` (${it.selectedVariant.weight})`} × {it.quantity}</div>
+                        ))}
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-semibold">₹{o.total}</TableCell>
+                    <TableCell>
+                      <Select value={o.payment_status} onValueChange={(v) => updateOrder(o.id, 'payment_status', v)}>
+                        <SelectTrigger className="w-24 h-7"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {PAYMENT_STATUSES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground mt-1">{o.payment_method}</p>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={`${statusColor(o.order_status)} text-white`}>{o.order_status}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Select value={o.order_status} onValueChange={(v) => updateOrder(o.id, 'order_status', v)}>
+                          <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {ORDER_STATUSES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete order?</AlertDialogTitle>
+                              <AlertDialogDescription>This cannot be undone.</AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => deleteOrder(o.id)}>Delete</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+
+  return (
+    <div className="min-h-screen bg-background pb-20">
+      <Header />
+      <main className="container mx-auto px-4 py-8">
+        <section className="mb-8">
+          <div className="gradient-hero rounded-2xl p-8 text-primary-foreground text-center">
+            <h1 className="font-serif text-3xl font-bold mb-2 animate-fade-in">Admin Dashboard</h1>
+            <p className="opacity-90">Cross-seller orders overview</p>
+          </div>
+        </section>
+
+        <Tabs value={tab} onValueChange={setTab} className="space-y-4">
+          <TabsList className="flex flex-wrap h-auto gap-1 justify-start">
+            <TabsTrigger value="all" className="text-xs">All ({orders.length})</TabsTrigger>
+            {sellerGroups.map((g) => (
+              <TabsTrigger key={g.id} value={g.id} className="text-xs flex items-center gap-1">
+                <Store className="w-3 h-3" />
+                {g.name} ({g.orders.length})
+              </TabsTrigger>
+            ))}
+          </TabsList>
+          <TabsContent value="all">{renderTable(orders)}</TabsContent>
+          {sellerGroups.map((g) => (
+            <TabsContent key={g.id} value={g.id}>
+              {renderTable(g.orders, `No orders for ${g.name} yet`)}
+            </TabsContent>
+          ))}
+        </Tabs>
+      </main>
+    </div>
+  );
+};
+
+export default AdminDashboard;
