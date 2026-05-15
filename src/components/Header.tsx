@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Search, User, LogOut, ClipboardList, ChevronDown, Store } from 'lucide-react';
+import { Search, User, LogOut, ClipboardList, ChevronDown, Store, Shield } from 'lucide-react';
 import ThemeSwitcher from '@/components/ThemeSwitcher';
 import UIStyleSwitcher from '@/components/UIStyleSwitcher';
 import TrendingPopup from '@/components/TrendingPopup';
@@ -152,6 +152,15 @@ const Header: React.FC<HeaderProps> = ({ onSearch, searchQuery = '' }) => {
                     <ClipboardList className="w-4 h-4 mr-2" />
                     My Orders
                   </DropdownMenuItem>
+                  {isAdmin && (
+                    <DropdownMenuItem 
+                      onClick={() => navigate('/admin')}
+                      className="cursor-pointer hover:bg-muted transition-colors"
+                    >
+                      <Shield className="w-4 h-4 mr-2" />
+                      Admin Dashboard
+                    </DropdownMenuItem>
+                  )}
                   {(isAdmin || isSeller) && (
                     <DropdownMenuItem 
                       onClick={() => navigate('/seller')}
