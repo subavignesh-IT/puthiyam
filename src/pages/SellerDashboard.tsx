@@ -2781,63 +2781,6 @@ const SellerDashboard: React.FC = () => {
 
           {/* Seller Products Tab - Admin only */}
           <TabsContent value="seller-products" className="space-y-4">
-            {/* Sellers overview */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="w-5 h-5 text-primary" />
-                  Sellers Overview ({adminSellerGroups.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {adminSellerGroups.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-6">No sellers yet</p>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Seller</TableHead>
-                          <TableHead>Phone</TableHead>
-                          <TableHead>Joined</TableHead>
-                          <TableHead>Products</TableHead>
-                          <TableHead>Orders</TableHead>
-                          <TableHead>Revenue</TableHead>
-                          <TableHead>Loyalty</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {adminSellerGroups.map((g) => {
-                          const profile = customers.find((c) => c.user_id === g.id);
-                          const revenue = g.orders.reduce((s, o) => s + o.total, 0);
-                          const ls = loyaltySettingsMap[g.id];
-                          return (
-                            <TableRow key={g.id}>
-                              <TableCell className="font-medium">{g.name}</TableCell>
-                              <TableCell className="text-sm">{profile?.phone || 'N/A'}</TableCell>
-                              <TableCell className="text-sm">{profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : '—'}</TableCell>
-                              <TableCell>{g.productIds.size}</TableCell>
-                              <TableCell>{g.orders.length}</TableCell>
-                              <TableCell className="font-semibold text-primary">₹{revenue.toLocaleString()}</TableCell>
-                              <TableCell className="text-xs">
-                                {ls ? (
-                                  <span>
-                                    {ls.enabled ? '✅' : '⏸'} {ls.stamps_required} stamps · ₹{ls.reward_amount} · min ₹{ls.min_order_value}
-                                  </span>
-                                ) : (
-                                  <span className="text-muted-foreground">Default</span>
-                                )}
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
