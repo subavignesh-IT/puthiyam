@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Store, Trash2 } from 'lucide-react';
+import { Store, Trash2, Package, ShoppingCart, Users, Edit } from 'lucide-react';
 import Header from '@/components/Header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -46,14 +47,28 @@ interface Order {
   created_at: string;
 }
 
+interface AdminProduct {
+  id: string;
+  seller_id: string;
+  name: string;
+  category: string;
+  base_price: number;
+  is_in_stock: boolean;
+  is_on_sale: boolean;
+  discount_amount: number;
+  discount_type: string | null;
+  image_url?: string | null;
+}
+
 const AdminDashboard = () => {
   const { user, loading: authLoading } = useAuth();
   const { isAdmin, loading: adminLoading } = useAdmin();
   const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
-  const [products, setProducts] = useState<{ id: string; seller_id: string }[]>([]);
+  const [products, setProducts] = useState<AdminProduct[]>([]);
   const [profiles, setProfiles] = useState<{ user_id: string; full_name: string | null; phone?: string | null; created_at?: string }[]>([]);
   const [loyaltySettingsMap, setLoyaltySettingsMap] = useState<Record<string, { enabled: boolean; stamps_required: number; reward_amount: number; min_order_value: number }>>({});
+  const [topTab, setTopTab] = useState<'orders' | 'sellers' | 'products'>('orders');
   const [tab, setTab] = useState('all');
 
   useEffect(() => {
@@ -61,14 +76,17 @@ const AdminDashboard = () => {
     if (!user) { navigate('/login'); return; }
     if (!isAdmin) { navigate('/seller'); return; }
     (async () => {
-      const [{ data: o }, { data: p }, { data: pr }, { data: ls }] = await Promise.all([
+      const [{ data: o }, { data: p }, { data: pr }, { data: ls }, { data: img }] = await Promise.all([
         supabase.from('orders').select('*').order('created_at', { ascending: false }),
-        supabase.from('products').select('id, seller_id'),
+        supabase.from('products').select('id, seller_id, name, category, base_price, is_in_stock, is_on_sale, discount_amount, discount_type').order('created_at', { ascending: false }),
         supabase.from('profiles').select('user_id, full_name, phone, created_at'),
         supabase.from('seller_loyalty_settings' as any).select('*'),
+        supabase.from('product_images').select('product_id, image_url, display_order').order('display_order'),
       ]);
       setOrders((o as any) || []);
-      setProducts((p as any) || []);
+      const firstImage: Record<string, string> = {};
+      ((img as any[]) || []).forEach((row) => { if (!firstImage[row.product_id]) firstImage[row.product_id] = row.image_url; });
+      setProducts(((p as any[]) || []).map((x) => ({ ...x, image_url: firstImage[x.id] || null })));
       setProfiles((pr as any) || []);
       const map: Record<string, any> = {};
       ((ls as any[]) || []).forEach((s) => { map[s.seller_id] = s; });
@@ -113,6 +131,19 @@ const AdminDashboard = () => {
     if (error) { toast({ title: 'Delete failed', description: error.message, variant: 'destructive' }); return; }
     setOrders((prev) => prev.filter((o) => o.id !== id));
     toast({ title: 'Order deleted' });
+  };
+
+  const toggleProductStock = async (id: string, val: boolean) => {
+    const { error } = await supabase.from('products').update({ is_in_stock: val }).eq('id', id);
+    if (error) { toast({ title: 'Update failed', description: error.message, variant: 'destructive' }); return; }
+    setProducts((prev) => prev.map((p) => p.id === id ? { ...p, is_in_stock: val } : p));
+  };
+
+  const deleteProduct = async (id: string) => {
+    const { error } = await supabase.from('products').delete().eq('id', id);
+    if (error) { toast({ title: 'Delete failed', description: error.message, variant: 'destructive' }); return; }
+    setProducts((prev) => prev.filter((p) => p.id !== id));
+    toast({ title: 'Product deleted' });
   };
 
   const renderTable = (list: Order[], emptyText = 'No orders yet') => (
@@ -279,6 +310,86 @@ const AdminDashboard = () => {
                     })}
                   </TableBody>
                 </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* All Sellers' Products (moved from Seller Dashboard) */}
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Package className="w-5 h-5 text-primary" />
+              All Sellers' Products ({products.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {sellerGroups.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">No seller products</p>
+            ) : (
+              <div className="space-y-6">
+                {sellerGroups.map((g) => {
+                  const sellerProds = products.filter((p) => p.seller_id === g.id);
+                  if (sellerProds.length === 0) return null;
+                  return (
+                    <div key={g.id} className="border rounded-lg p-4 space-y-3">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Badge variant="secondary">🏪 {g.name}</Badge>
+                        <span className="text-xs text-muted-foreground">({sellerProds.length} products)</span>
+                      </div>
+                      <div className="grid gap-3">
+                        {sellerProds.map((product) => (
+                          <div key={product.id} className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+                            <div className="w-16 h-16 flex-shrink-0">
+                              {product.image_url ? (
+                                <img src={product.image_url} alt={product.name} className="w-full h-full object-cover rounded-md" />
+                              ) : (
+                                <div className="w-full h-full bg-muted rounded-md flex items-center justify-center">
+                                  <Package className="w-6 h-6 text-muted-foreground" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium truncate">{product.name}</p>
+                              <p className="text-xs text-muted-foreground">{product.category} • ₹{product.base_price}</p>
+                              {product.is_on_sale && (
+                                <Badge variant="destructive" className="text-xs mt-1">
+                                  {product.discount_type === 'percentage' ? `${product.discount_amount}% OFF` : `₹${product.discount_amount} OFF`}
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-1">
+                                <Switch
+                                  checked={product.is_in_stock}
+                                  onCheckedChange={(checked) => toggleProductStock(product.id, checked)}
+                                />
+                                <span className="text-xs">{product.is_in_stock ? 'In Stock' : 'Out'}</span>
+                              </div>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete this product?</AlertDialogTitle>
+                                    <AlertDialogDescription>This will permanently remove {product.name}.</AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => deleteProduct(product.id)}>Delete</AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </CardContent>
