@@ -52,7 +52,8 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<{ id: string; seller_id: string }[]>([]);
-  const [profiles, setProfiles] = useState<{ user_id: string; full_name: string | null }[]>([]);
+  const [profiles, setProfiles] = useState<{ user_id: string; full_name: string | null; phone?: string | null; created_at?: string }[]>([]);
+  const [loyaltySettingsMap, setLoyaltySettingsMap] = useState<Record<string, { enabled: boolean; stamps_required: number; reward_amount: number; min_order_value: number }>>({});
   const [tab, setTab] = useState('all');
 
   useEffect(() => {
@@ -60,14 +61,18 @@ const AdminDashboard = () => {
     if (!user) { navigate('/login'); return; }
     if (!isAdmin) { navigate('/seller'); return; }
     (async () => {
-      const [{ data: o }, { data: p }, { data: pr }] = await Promise.all([
+      const [{ data: o }, { data: p }, { data: pr }, { data: ls }] = await Promise.all([
         supabase.from('orders').select('*').order('created_at', { ascending: false }),
         supabase.from('products').select('id, seller_id'),
-        supabase.from('profiles').select('user_id, full_name'),
+        supabase.from('profiles').select('user_id, full_name, phone, created_at'),
+        supabase.from('seller_loyalty_settings' as any).select('*'),
       ]);
       setOrders((o as any) || []);
       setProducts((p as any) || []);
       setProfiles((pr as any) || []);
+      const map: Record<string, any> = {};
+      ((ls as any[]) || []).forEach((s) => { map[s.seller_id] = s; });
+      setLoyaltySettingsMap(map);
     })();
   }, [user, isAdmin, authLoading, adminLoading, navigate]);
 
@@ -223,6 +228,61 @@ const AdminDashboard = () => {
             </TabsContent>
           ))}
         </Tabs>
+
+        {/* Sellers Overview (moved from Seller Dashboard) */}
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Store className="w-5 h-5 text-primary" />
+              Sellers Overview ({sellerGroups.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {sellerGroups.length === 0 ? (
+              <p className="text-center text-muted-foreground py-6">No sellers yet</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Seller</TableHead>
+                      <TableHead>Phone</TableHead>
+                      <TableHead>Joined</TableHead>
+                      <TableHead>Products</TableHead>
+                      <TableHead>Orders</TableHead>
+                      <TableHead>Revenue</TableHead>
+                      <TableHead>Loyalty</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {sellerGroups.map((g) => {
+                      const profile = profiles.find((p) => p.user_id === g.id);
+                      const revenue = g.orders.reduce((s, o) => s + o.total, 0);
+                      const ls = loyaltySettingsMap[g.id];
+                      return (
+                        <TableRow key={g.id}>
+                          <TableCell className="font-medium">{g.name}</TableCell>
+                          <TableCell className="text-sm">{profile?.phone || 'N/A'}</TableCell>
+                          <TableCell className="text-sm">{profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : '—'}</TableCell>
+                          <TableCell>{g.productIds.size}</TableCell>
+                          <TableCell>{g.orders.length}</TableCell>
+                          <TableCell className="font-semibold text-primary">₹{revenue.toLocaleString()}</TableCell>
+                          <TableCell className="text-xs">
+                            {ls ? (
+                              <span>{ls.enabled ? '✅' : '⏸'} {ls.stamps_required} stamps · ₹{ls.reward_amount} · min ₹{ls.min_order_value}</span>
+                            ) : (
+                              <span className="text-muted-foreground">Default</span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </main>
     </div>
   );
