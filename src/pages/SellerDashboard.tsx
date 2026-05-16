@@ -1434,7 +1434,7 @@ const SellerDashboard: React.FC = () => {
 
         {/* Admin cross-seller dashboard moved to /admin route */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-9' : 'grid-cols-6'}`}>
+          <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-8' : 'grid-cols-6'}`}>
             <TabsTrigger value="orders" className="flex items-center gap-1 text-xs">
               <ShoppingCart className="w-4 h-4" />
               <span className="hidden sm:inline">Orders</span>
@@ -1468,12 +1468,6 @@ const SellerDashboard: React.FC = () => {
               <Plus className="w-4 h-4" />
               <span className="hidden sm:inline">Add New</span>
             </TabsTrigger>
-            {isAdmin && (
-              <TabsTrigger value="seller-products" className="flex items-center gap-1 text-xs">
-                <Store className="w-4 h-4" />
-                <span className="hidden sm:inline">Sellers</span>
-              </TabsTrigger>
-            )}
             <TabsTrigger value="reports" className="flex items-center gap-1 text-xs">
               <BarChart3 className="w-4 h-4" />
               <span className="hidden sm:inline">Reports</span>
@@ -2775,138 +2769,6 @@ const SellerDashboard: React.FC = () => {
                     </Table>
                   </div>
                 )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Seller Products Tab - Admin only */}
-          <TabsContent value="seller-products" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Store className="w-5 h-5" />
-                  All Sellers' Products
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {(() => {
-                  // Group products by seller
-                  const sellerProducts: Record<string, { sellerId: string; products: ProductWithDetails[] }> = {};
-                  products.forEach(p => {
-                    if (!sellerProducts[p.seller_id]) {
-                      sellerProducts[p.seller_id] = { sellerId: p.seller_id, products: [] };
-                    }
-                    sellerProducts[p.seller_id].products.push(p);
-                  });
-                  
-                  const sellerEntries = Object.entries(sellerProducts);
-                  if (sellerEntries.length === 0) {
-                    return <p className="text-center text-muted-foreground py-8">No seller products</p>;
-                  }
-                  
-                  return (
-                    <div className="space-y-6">
-                      {sellerEntries.map(([sellerId, { products: sellerProds }]) => {
-                        const sellerProfile = customers.find(c => c.user_id === sellerId);
-                        const sellerRole = customerRoles[sellerId] || 'user';
-                        const isOwnProduct = sellerId === user?.id;
-                        
-                        return (
-                          <div key={sellerId} className="border rounded-lg p-4 space-y-3">
-                            <div className="flex items-center gap-2 mb-3">
-                              <Badge variant={sellerRole === 'admin' ? 'default' : 'secondary'}>
-                                {sellerRole === 'admin' ? '👑 Owner' : '🏪 Seller'}
-                              </Badge>
-                              <span className="font-semibold">{sellerProfile?.full_name || 'Unknown Seller'}</span>
-                              <span className="text-xs text-muted-foreground">({sellerProds.length} products)</span>
-                            </div>
-                            <div className="grid gap-3">
-                              {sellerProds.map(product => (
-                                <div key={product.id} className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
-                                  <div className="w-16 h-16 flex-shrink-0">
-                                    {product.images[0] ? (
-                                      <img src={product.images[0].image_url} alt={product.name} className="w-full h-full object-cover rounded-md" />
-                                    ) : (
-                                      <div className="w-full h-full bg-muted rounded-md flex items-center justify-center">
-                                        <Package className="w-6 h-6 text-muted-foreground" />
-                                      </div>
-                                    )}
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="font-medium truncate">{product.name}</p>
-                                    <p className="text-xs text-muted-foreground">{product.category} • ₹{product.base_price}</p>
-                                    {product.is_on_sale && (
-                                      <Badge variant="destructive" className="text-xs mt-1">
-                                        {product.discount_type === 'percentage' ? `${product.discount_amount}% OFF` : `₹${product.discount_amount} OFF`}
-                                      </Badge>
-                                    )}
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    {isOwner && !isOwnProduct && (
-                                      <>
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={() => {
-                                            setEditingProduct(product);
-                                            setProductName(product.name);
-                                            setProductDescription(product.description || '');
-                                            setProductCategory(product.category);
-                                            setBasePrice(String(product.base_price));
-                                            setMeasurementUnit(product.measurement_unit);
-                                            setPackingType(product.packing_type || 'pouch');
-                                            setIsOnSale(product.is_on_sale);
-                                            setDiscountAmount(String(product.discount_amount));
-                                            setDiscountType((product.discount_type as 'amount' | 'percentage') || 'amount');
-                                            setVariants(product.variants.map(v => ({
-                                              id: v.id,
-                                              quantity: v.quantity,
-                                              price: v.price,
-                                              wholesalePrice: (v as any).wholesale_price || 0,
-                                              isDefault: v.is_default || false,
-                                              stockQuantity: v.stock_quantity,
-                                            })));
-                                            setActiveTab('add');
-                                          }}
-                                        >
-                                          <Edit className="w-3 h-3 mr-1" /> Edit
-                                        </Button>
-                                        <AlertDialog>
-                                          <AlertDialogTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
-                                              <Trash2 className="w-4 h-4" />
-                                            </Button>
-                                          </AlertDialogTrigger>
-                                          <AlertDialogContent>
-                                            <AlertDialogHeader>
-                                              <AlertDialogTitle>Delete this seller's product?</AlertDialogTitle>
-                                              <AlertDialogDescription>This will permanently remove {product.name}.</AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter>
-                                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                              <AlertDialogAction onClick={() => deleteProduct(product.id)}>Delete</AlertDialogAction>
-                                            </AlertDialogFooter>
-                                          </AlertDialogContent>
-                                        </AlertDialog>
-                                      </>
-                                    )}
-                                    <div className="flex items-center gap-1">
-                                      <Switch
-                                        checked={product.is_in_stock}
-                                        onCheckedChange={(checked) => toggleProductStock(product.id, checked)}
-                                      />
-                                      <span className="text-xs">{product.is_in_stock ? 'In Stock' : 'Out'}</span>
-                                    </div>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })()}
               </CardContent>
             </Card>
           </TabsContent>
