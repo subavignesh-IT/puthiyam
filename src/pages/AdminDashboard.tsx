@@ -242,26 +242,41 @@ const AdminDashboard = () => {
           </div>
         </section>
 
-        <Tabs value={tab} onValueChange={setTab} className="space-y-4">
-          <TabsList className="flex flex-wrap h-auto gap-1 justify-start">
-            <TabsTrigger value="all" className="text-xs">All ({orders.length})</TabsTrigger>
-            {sellerGroups.map((g) => (
-              <TabsTrigger key={g.id} value={g.id} className="text-xs flex items-center gap-1">
-                <Store className="w-3 h-3" />
-                {g.name} ({g.orders.length})
-              </TabsTrigger>
-            ))}
+        <Tabs value={topTab} onValueChange={(v) => setTopTab(v as any)} className="space-y-4">
+          <TabsList className="flex flex-wrap h-auto gap-2 justify-start bg-transparent p-0">
+            <TabsTrigger value="orders" className="rounded-full border border-border bg-card px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
+              <ShoppingCart className="w-4 h-4 mr-2" /> Orders ({orders.length})
+            </TabsTrigger>
+            <TabsTrigger value="sellers" className="rounded-full border border-border bg-card px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
+              <Users className="w-4 h-4 mr-2" /> Sellers ({sellerGroups.length})
+            </TabsTrigger>
+            <TabsTrigger value="products" className="rounded-full border border-border bg-card px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
+              <Package className="w-4 h-4 mr-2" /> Products ({products.length})
+            </TabsTrigger>
           </TabsList>
-          <TabsContent value="all">{renderTable(orders)}</TabsContent>
-          {sellerGroups.map((g) => (
-            <TabsContent key={g.id} value={g.id}>
-              {renderTable(g.orders, `No orders for ${g.name} yet`)}
-            </TabsContent>
-          ))}
-        </Tabs>
 
-        {/* Sellers Overview (moved from Seller Dashboard) */}
-        <Card className="mt-8">
+          <TabsContent value="orders" className="space-y-4">
+            <Tabs value={tab} onValueChange={setTab} className="space-y-4">
+              <TabsList className="flex flex-wrap h-auto gap-2 justify-start bg-transparent p-0">
+                <TabsTrigger value="all" className="rounded-full border border-border bg-card px-3 py-1.5 text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">All ({orders.length})</TabsTrigger>
+                {sellerGroups.map((g) => (
+                  <TabsTrigger key={g.id} value={g.id} className="rounded-full border border-border bg-card px-3 py-1.5 text-xs flex items-center gap-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                    <Store className="w-3 h-3" />
+                    {g.name} ({g.orders.length})
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+              <TabsContent value="all">{renderTable(orders)}</TabsContent>
+              {sellerGroups.map((g) => (
+                <TabsContent key={g.id} value={g.id}>
+                  {renderTable(g.orders, `No orders for ${g.name} yet`)}
+                </TabsContent>
+              ))}
+            </Tabs>
+          </TabsContent>
+
+          <TabsContent value="sellers">
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Store className="w-5 h-5 text-primary" />
@@ -314,9 +329,10 @@ const AdminDashboard = () => {
             )}
           </CardContent>
         </Card>
+          </TabsContent>
 
-        {/* All Sellers' Products (moved from Seller Dashboard) */}
-        <Card className="mt-8">
+          <TabsContent value="products">
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Package className="w-5 h-5 text-primary" />
@@ -394,6 +410,8 @@ const AdminDashboard = () => {
             )}
           </CardContent>
         </Card>
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );
