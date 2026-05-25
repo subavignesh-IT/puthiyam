@@ -349,62 +349,67 @@ const AdminDashboard = () => {
             {sellerGroups.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">No seller products</p>
             ) : (
-              <div className="space-y-6">
+              <div className="space-y-8">
                 {sellerGroups.map((g) => {
                   const sellerProds = products.filter((p) => p.seller_id === g.id);
                   if (sellerProds.length === 0) return null;
                   return (
-                    <div key={g.id} className="border rounded-lg p-4 space-y-3">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Badge variant="secondary">🏪 {g.name}</Badge>
+                    <div key={g.id} className="space-y-4">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="text-sm px-3 py-1">🏪 {g.name}</Badge>
                         <span className="text-xs text-muted-foreground">({sellerProds.length} products)</span>
                       </div>
-                      <div className="grid gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                         {sellerProds.map((product) => (
-                          <div key={product.id} className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
-                            <div className="w-16 h-16 flex-shrink-0">
+                          <div key={product.id} className="group flex flex-col bg-card border rounded-xl overflow-hidden hover:shadow-md transition-shadow">
+                            <div className="aspect-square w-full bg-muted relative">
                               {product.image_url ? (
-                                <img src={product.image_url} alt={product.name} className="w-full h-full object-cover rounded-md" />
+                                <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
                               ) : (
-                                <div className="w-full h-full bg-muted rounded-md flex items-center justify-center">
-                                  <Package className="w-6 h-6 text-muted-foreground" />
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <Package className="w-10 h-10 text-muted-foreground" />
                                 </div>
                               )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium truncate">{product.name}</p>
-                              <p className="text-xs text-muted-foreground">{product.category} • ₹{product.base_price}</p>
                               {product.is_on_sale && (
-                                <Badge variant="destructive" className="text-xs mt-1">
+                                <Badge variant="destructive" className="absolute top-2 right-2 text-xs">
                                   {product.discount_type === 'percentage' ? `${product.discount_amount}% OFF` : `₹${product.discount_amount} OFF`}
                                 </Badge>
                               )}
                             </div>
-                            <div className="flex items-center gap-2">
-                              <div className="flex items-center gap-1">
-                                <Switch
-                                  checked={product.is_in_stock}
-                                  onCheckedChange={(checked) => toggleProductStock(product.id, checked)}
-                                />
-                                <span className="text-xs">{product.is_in_stock ? 'In Stock' : 'Out'}</span>
+                            <div className="p-3 flex flex-col flex-1">
+                              <p className="font-medium text-sm line-clamp-2 min-h-[2.5rem]">{product.name}</p>
+                              <p className="text-xs text-muted-foreground mt-1">{product.category}</p>
+                              <div className="mt-auto pt-3 flex items-center justify-between gap-2">
+                                <span className="font-semibold text-sm">₹{product.base_price}</span>
+                                <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-1.5">
+                                    <Switch
+                                      checked={product.is_in_stock}
+                                      onCheckedChange={(checked) => toggleProductStock(product.id, checked)}
+                                    />
+                                    <span className={`text-xs ${product.is_in_stock ? 'text-green-600' : 'text-muted-foreground'}`}>
+                                      {product.is_in_stock ? 'In Stock' : 'Out'}
+                                    </span>
+                                  </div>
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive">
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>Delete this product?</AlertDialogTitle>
+                                        <AlertDialogDescription>This will permanently remove {product.name}.</AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => deleteProduct(product.id)}>Delete</AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                </div>
                               </div>
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Delete this product?</AlertDialogTitle>
-                                    <AlertDialogDescription>This will permanently remove {product.name}.</AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => deleteProduct(product.id)}>Delete</AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
                             </div>
                           </div>
                         ))}
