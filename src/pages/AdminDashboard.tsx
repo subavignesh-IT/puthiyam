@@ -242,16 +242,22 @@ const AdminDashboard = () => {
           </div>
         </section>
 
-        <Tabs value={topTab} onValueChange={(v) => setTopTab(v as any)} className="space-y-4">
-          <TabsList className="flex flex-wrap h-auto gap-2 justify-start bg-transparent p-0">
-            <TabsTrigger value="orders" className="rounded-full border border-border bg-card px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
-              <ShoppingCart className="w-4 h-4 mr-2" /> Orders ({orders.length})
+        <Tabs value={topTab} onValueChange={(v) => setTopTab(v as any)} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="orders" className="flex items-center gap-1 text-xs">
+              <ShoppingCart className="w-4 h-4" />
+              <span className="hidden sm:inline">Bills</span>
+              <span className="opacity-70">({orders.length})</span>
             </TabsTrigger>
-            <TabsTrigger value="sellers" className="rounded-full border border-border bg-card px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
-              <Users className="w-4 h-4 mr-2" /> Sellers ({sellerGroups.length})
+            <TabsTrigger value="sellers" className="flex items-center gap-1 text-xs">
+              <Users className="w-4 h-4" />
+              <span className="hidden sm:inline">Sellers</span>
+              <span className="opacity-70">({sellerGroups.length})</span>
             </TabsTrigger>
-            <TabsTrigger value="products" className="rounded-full border border-border bg-card px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
-              <Package className="w-4 h-4 mr-2" /> Products ({products.length})
+            <TabsTrigger value="products" className="flex items-center gap-1 text-xs">
+              <Package className="w-4 h-4" />
+              <span className="hidden sm:inline">Product List</span>
+              <span className="opacity-70">({products.length})</span>
             </TabsTrigger>
           </TabsList>
 
