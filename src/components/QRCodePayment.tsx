@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { ArrowLeft, QrCode, Copy, Check, Clock, AlertCircle, CheckCircle } from 'lucide-react';
+import { ArrowLeft, QrCode, Copy, Check, Clock, AlertCircle, CheckCircle, Loader2, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,6 +25,7 @@ interface QRCodePaymentProps {
 }
 
 const QRCodePayment: React.FC<QRCodePaymentProps> = ({ total, onPaymentComplete, onBack, onTimeout }) => {
+  const { user } = useAuth();
   const upiId = 'kathaiahkarthik@okhdfcbank';
   const merchantName = 'PUTHIYAM PRODUCTS';
   const bankName = 'TMB Bank';
@@ -35,6 +38,13 @@ const QRCodePayment: React.FC<QRCodePaymentProps> = ({ total, onPaymentComplete,
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [upiAppOpened, setUpiAppOpened] = useState(false);
   const returnCheckRef = useRef<number | null>(null);
+
+  // PhonePe / GPay backend flow state
+  const [gpayLoading, setGpayLoading] = useState(false);
+  const [gpayPolling, setGpayPolling] = useState(false);
+  const [gpayTxnId, setGpayTxnId] = useState<string | null>(null);
+  const pollRef = useRef<number | null>(null);
+  const pollStopRef = useRef(false);
   
   // Generate QR code using QR Server API
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiUrl)}`;
@@ -128,11 +138,95 @@ const QRCodePayment: React.FC<QRCodePaymentProps> = ({ total, onPaymentComplete,
     onPaymentComplete();
   };
 
+  const stopPolling = () => {
+    pollStopRef.current = true;
+    if (pollRef.current) {
+      clearTimeout(pollRef.current);
+      pollRef.current = null;
+    }
+    setGpayPolling(false);
+  };
+
+  useEffect(() => () => stopPolling(), []);
+
+  const pollStatus = async (txnId: string) => {
+    pollStopRef.current = false;
+    setGpayPolling(true);
+    const started = Date.now();
+    const maxMs = 9 * 60 * 1000; // stop polling 1 min before timer expires
+    const tick = async () => {
+      if (pollStopRef.current) return;
+      try {
+        const { data, error } = await supabase.functions.invoke('phonepe-status', {
+          body: { merchantTransactionId: txnId },
+        });
+        if (error) throw error;
+        if (data?.status === 'PAID') {
+          stopPolling();
+          toast({ title: 'Payment Successful', description: `₹${total} received. Confirming your order...` });
+          onPaymentComplete();
+          return;
+        }
+        if (data?.status === 'FAILED') {
+          stopPolling();
+          toast({ title: 'Payment Failed', description: 'Your payment did not go through. Try again.', variant: 'destructive' });
+          setGpayTxnId(null);
+          return;
+        }
+      } catch (e) {
+        console.error('status poll failed', e);
+      }
+      if (Date.now() - started > maxMs) { stopPolling(); return; }
+      pollRef.current = window.setTimeout(tick, 3000);
+    };
+    tick();
+  };
+
+  const handlePayWithGpay = async () => {
+    if (gpayLoading || gpayPolling) return;
+    setGpayLoading(true);
+    try {
+      const orderRef = `ORD${Date.now()}`;
+      const { data, error } = await supabase.functions.invoke('phonepe-initiate', {
+        body: {
+          amount: total,
+          orderId: orderRef,
+          userId: user?.id || 'guest',
+          redirectUrl: window.location.href,
+        },
+      });
+      if (error) throw error;
+      if (!data?.redirectUrl || !data?.merchantTransactionId) {
+        throw new Error(data?.error || 'Failed to start payment');
+      }
+      setGpayTxnId(data.merchantTransactionId);
+      // Open PhonePe payment page (will route to GPay/UPI app)
+      window.open(data.redirectUrl, '_blank');
+      toast({
+        title: 'Complete payment in the opened tab',
+        description: 'We are checking the status automatically. Your order confirms once payment succeeds.',
+        duration: 8000,
+      });
+      pollStatus(data.merchantTransactionId);
+    } catch (e: any) {
+      console.error(e);
+      toast({ title: 'Could not start payment', description: e?.message || 'Try again.', variant: 'destructive' });
+    } finally {
+      setGpayLoading(false);
+    }
+  };
+
+  const handleCancelGpay = () => {
+    stopPolling();
+    setGpayTxnId(null);
+    toast({ title: 'Payment cancelled', description: 'Your order has NOT been placed.', variant: 'destructive' });
+  };
+
   return (
     <>
       <Card className="animate-fade-in">
         <CardHeader>
-          <Button variant="ghost" size="sm" onClick={onBack} className="w-fit -ml-2">
+          <Button variant="ghost" size="sm" onClick={() => { stopPolling(); onBack(); }} className="w-fit -ml-2">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back
           </Button>
@@ -157,6 +251,48 @@ const QRCodePayment: React.FC<QRCodePaymentProps> = ({ total, onPaymentComplete,
           <div className="text-center">
             <p className="text-muted-foreground mb-2">Amount to Pay</p>
             <p className="text-3xl font-bold text-primary">₹{total}</p>
+          </div>
+
+          {/* Pay with GPay via PhonePe (verified by backend) */}
+          <div className="space-y-2">
+            {!gpayPolling ? (
+              <Button
+                onClick={handlePayWithGpay}
+                disabled={gpayLoading}
+                className="w-full gradient-hero text-primary-foreground h-12"
+              >
+                {gpayLoading ? (
+                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Starting secure payment...</>
+                ) : (
+                  <>Pay ₹{total} with GPay (Secure)</>
+                )}
+              </Button>
+            ) : (
+              <div className="space-y-2 p-3 rounded-lg border border-primary/40 bg-primary/5">
+                <div className="flex items-center gap-2 text-sm">
+                  <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                  <span>Waiting for payment confirmation from PhonePe...</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Your order confirms automatically once the payment succeeds. If you closed the GPay tab without paying, cancel below.
+                </p>
+                <Button variant="destructive" size="sm" onClick={handleCancelGpay} className="w-full">
+                  <XCircle className="w-4 h-4 mr-2" /> Cancel Payment
+                </Button>
+              </div>
+            )}
+            <p className="text-[11px] text-center text-muted-foreground">
+              Backend-verified · order confirms only after payment is received
+            </p>
+          </div>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">or pay manually</span>
+            </div>
           </div>
 
           {/* UPI App Selector */}
