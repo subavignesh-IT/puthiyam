@@ -359,42 +359,38 @@ const AdminDashboard = () => {
                         <Badge variant="secondary" className="text-sm px-3 py-1">🏪 {g.name}</Badge>
                         <span className="text-xs text-muted-foreground">({sellerProds.length} products)</span>
                       </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                         {sellerProds.map((product) => (
-                          <div key={product.id} className="group flex flex-col bg-card border rounded-xl overflow-hidden hover:shadow-md transition-shadow">
-                            <div className="aspect-square w-full bg-muted relative">
+                          <div key={product.id} className="group flex items-center gap-3 bg-card border rounded-xl p-2 hover:shadow-md transition-shadow">
+                            <div className="w-16 h-16 shrink-0 rounded-lg bg-muted overflow-hidden relative">
                               {product.image_url ? (
                                 <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center">
-                                  <Package className="w-10 h-10 text-muted-foreground" />
+                                  <Package className="w-5 h-5 text-muted-foreground" />
                                 </div>
                               )}
                               {product.is_on_sale && (
-                                <Badge variant="destructive" className="absolute top-2 right-2 text-xs">
-                                  {product.discount_type === 'percentage' ? `${product.discount_amount}% OFF` : `₹${product.discount_amount} OFF`}
+                                <Badge variant="destructive" className="absolute top-0.5 right-0.5 text-[9px] px-1">
+                                  {product.discount_type === 'percentage' ? `${product.discount_amount}%` : `₹${product.discount_amount}`}
                                 </Badge>
                               )}
                             </div>
-                            <div className="p-3 flex flex-col flex-1">
-                              <p className="font-medium text-sm line-clamp-2 min-h-[2.5rem]">{product.name}</p>
-                              <p className="text-xs text-muted-foreground mt-1">{product.category}</p>
-                              <div className="mt-auto pt-3 flex items-center justify-between gap-2">
-                                <span className="font-semibold text-sm">₹{product.base_price}</span>
-                                <div className="flex items-center gap-2">
-                                  <div className="flex items-center gap-1.5">
-                                    <Switch
-                                      checked={product.is_in_stock}
-                                      onCheckedChange={(checked) => toggleProductStock(product.id, checked)}
-                                    />
-                                    <span className={`text-xs ${product.is_in_stock ? 'text-green-600' : 'text-muted-foreground'}`}>
-                                      {product.is_in_stock ? 'In Stock' : 'Out'}
-                                    </span>
-                                  </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">{product.name}</p>
+                              <p className="text-[11px] text-muted-foreground">{product.category}</p>
+                              <div className="flex items-center justify-between mt-1.5">
+                                <span className="text-sm font-semibold">₹{product.base_price}</span>
+                                <div className="flex items-center gap-1.5">
+                                  <Switch
+                                    checked={product.is_in_stock}
+                                    onCheckedChange={(checked) => toggleProductStock(product.id, checked)}
+                                    className="scale-75"
+                                  />
                                   <AlertDialog>
                                     <AlertDialogTrigger asChild>
-                                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive">
-                                        <Trash2 className="w-3.5 h-3.5" />
+                                      <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive">
+                                        <Trash2 className="w-3 h-3" />
                                       </Button>
                                     </AlertDialogTrigger>
                                     <AlertDialogContent>
