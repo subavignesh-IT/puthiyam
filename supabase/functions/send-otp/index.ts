@@ -1,64 +1,63 @@
-import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors'
+
+const GATEWAY_URL = 'https://connector-gateway.lovable.dev/twilio'
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const { phone } = await req.json();
+    const { phone } = await req.json()
     if (!phone || !/^\d{10}$/.test(String(phone))) {
-      return new Response(JSON.stringify({ error: 'Valid 10-digit phone required' }), {
+      return new Response(JSON.stringify({ error: 'Invalid phone number' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      })
     }
 
-    const AUTH_KEY = Deno.env.get('MSG91_AUTH_KEY');
-    const SENDER_ID = Deno.env.get('MSG91_SENDER_ID');
-    const TEMPLATE_ID = Deno.env.get('MSG91_TEMPLATE_ID');
-    if (!AUTH_KEY || !TEMPLATE_ID) {
-      return new Response(JSON.stringify({ error: 'MSG91 not configured' }), {
+    const lovableKey = Deno.env.get('LOVABLE_API_KEY')
+    const twilioKey = Deno.env.get('TWILIO_API_KEY')
+    const fromNumber = Deno.env.get('TWILIO_FROM_NUMBER')
+    if (!lovableKey || !twilioKey || !fromNumber) {
+      return new Response(JSON.stringify({ error: 'Twilio not configured' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      })
     }
 
-    const otp = Math.floor(1000 + Math.random() * 9000).toString();
-    const mobile = `91${phone}`;
+    const otp = String(Math.floor(1000 + Math.random() * 9000))
+    const to = `+91${phone}`
+    const body = `Your PUTHIYAM PRODUCTS verification code is ${otp}. It expires in 5 minutes.`
 
-    const url = new URL('https://control.msg91.com/api/v5/otp');
-    url.searchParams.set('template_id', TEMPLATE_ID);
-    url.searchParams.set('mobile', mobile);
-    url.searchParams.set('otp', otp);
-    url.searchParams.set('otp_length', '4');
-    url.searchParams.set('otp_expiry', '5');
-
-    const resp = await fetch(url.toString(), {
+    const resp = await fetch(`${GATEWAY_URL}/Messages.json`, {
       method: 'POST',
       headers: {
-        'authkey': AUTH_KEY,
-        'Content-Type': 'application/json',
+        Authorization: `Bearer ${lovableKey}`,
+        'X-Connection-Api-Key': twilioKey,
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: JSON.stringify({}),
-    });
-    const data = await resp.json();
-    console.log('MSG91 response', resp.status, JSON.stringify(data));
+      body: new URLSearchParams({ To: to, From: fromNumber, Body: body }),
+    })
 
-    if (!resp.ok || data?.type === 'error') {
-      return new Response(JSON.stringify({ error: data?.message || 'Failed to send OTP', details: data }), {
-        status: 502,
+    const data = await resp.json()
+    console.log('Twilio response', resp.status, JSON.stringify(data))
+
+    if (!resp.ok) {
+      return new Response(JSON.stringify({ error: 'Failed to send OTP', details: data }), {
+        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      })
     }
 
-    return new Response(JSON.stringify({ success: true, otp, requestId: data?.request_id }), {
+    return new Response(JSON.stringify({ success: true, request_id: data?.sid, otp }), {
+      status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    })
   } catch (e) {
-    return new Response(JSON.stringify({ error: String(e?.message || e) }), {
+    return new Response(JSON.stringify({ error: String(e) }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    })
   }
-});
+})
