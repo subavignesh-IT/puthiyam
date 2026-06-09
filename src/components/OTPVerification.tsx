@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { toast } from '@/hooks/use-toast';
 import { Loader2, RefreshCw } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface OTPVerificationProps {
   phone: string;
@@ -18,22 +19,30 @@ const OTPVerification: React.FC<OTPVerificationProps> = ({ phone, onVerified, on
   const [resendTimer, setResendTimer] = useState(30);
   const [canResend, setCanResend] = useState(false);
 
-  // Generate and "send" OTP (simulated - in production would use MSG91)
-  const generateOTP = () => {
-    const newOTP = Math.floor(1000 + Math.random() * 9000).toString();
-    setGeneratedOTP(newOTP);
-    
-    // In production, this would call MSG91 API to send SMS
-    // For now, show the OTP in a toast (development only)
-    toast({
-      title: "OTP Sent!",
-      description: `Your OTP is: ${newOTP} (SMS sent to ${phone})`,
-      duration: 15000,
-    });
-
-    // Reset resend timer
-    setResendTimer(30);
-    setCanResend(false);
+  // Send real OTP SMS via MSG91 edge function
+  const generateOTP = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('send-otp', {
+        body: { phone },
+      });
+      if (error || !data?.success) {
+        toast({
+          title: 'Failed to send OTP',
+          description: error?.message || data?.error || 'Please try again',
+          variant: 'destructive',
+        });
+        return;
+      }
+      setGeneratedOTP(data.otp);
+      toast({
+        title: 'OTP Sent!',
+        description: `SMS sent to ${phone}`,
+      });
+      setResendTimer(30);
+      setCanResend(false);
+    } catch (e: any) {
+      toast({ title: 'Network error', description: e?.message, variant: 'destructive' });
+    }
   };
 
   useEffect(() => {
