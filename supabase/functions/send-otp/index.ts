@@ -33,7 +33,6 @@ Deno.serve(async (req) => {
     url.searchParams.set('otp', otp);
     url.searchParams.set('otp_length', '4');
     url.searchParams.set('otp_expiry', '5');
-    if (SENDER_ID) url.searchParams.set('sender', SENDER_ID);
 
     const resp = await fetch(url.toString(), {
       method: 'POST',
@@ -44,6 +43,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({}),
     });
     const data = await resp.json();
+    console.log('MSG91 response', resp.status, JSON.stringify(data));
 
     if (!resp.ok || data?.type === 'error') {
       return new Response(JSON.stringify({ error: data?.message || 'Failed to send OTP', details: data }), {
