@@ -35,9 +35,7 @@ const QRCodePayment: React.FC<QRCodePaymentProps> = ({ total, onPaymentComplete,
   const [copied, setCopied] = useState(false);
   const [payerUpi, setPayerUpi] = useState('');
   const [paymentRequested, setPaymentRequested] = useState(false);
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [upiAppOpened, setUpiAppOpened] = useState(false);
-  const returnCheckRef = useRef<number | null>(null);
 
   // PhonePe / GPay backend flow state
   const [gpayLoading, setGpayLoading] = useState(false);
@@ -65,31 +63,6 @@ const QRCodePayment: React.FC<QRCodePaymentProps> = ({ total, onPaymentComplete,
 
     return () => clearInterval(timer);
   }, [onTimeout]);
-
-  // Listen for visibility change to detect when user returns from UPI app
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && upiAppOpened) {
-        // User returned to the page after opening UPI app
-        // Show confirmation dialog after a short delay
-        if (returnCheckRef.current) {
-          clearTimeout(returnCheckRef.current);
-        }
-        returnCheckRef.current = window.setTimeout(() => {
-          setShowConfirmDialog(true);
-        }, 500);
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      if (returnCheckRef.current) {
-        clearTimeout(returnCheckRef.current);
-      }
-    };
-  }, [upiAppOpened]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -131,11 +104,6 @@ const QRCodePayment: React.FC<QRCodePaymentProps> = ({ total, onPaymentComplete,
     
     // Start listening for return after user opens their UPI app
     setUpiAppOpened(true);
-  };
-
-  const handlePaymentConfirmed = () => {
-    setShowConfirmDialog(false);
-    onPaymentComplete();
   };
 
   const stopPolling = () => {
@@ -377,26 +345,6 @@ const QRCodePayment: React.FC<QRCodePaymentProps> = ({ total, onPaymentComplete,
           </p>
         </CardContent>
       </Card>
-
-      {/* Payment Confirmation Dialog - Only Yes button */}
-      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-primary" />
-              Did you complete the payment?
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              If you've successfully paid ₹{total} using your UPI app, click below to confirm your order.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="flex justify-center pt-4">
-            <AlertDialogAction onClick={handlePaymentConfirmed} className="gradient-hero px-8">
-              Yes, Payment Done ✓
-            </AlertDialogAction>
-          </div>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 };
