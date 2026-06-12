@@ -1,48 +1,58 @@
-## Problem
+# Plan: Admin per-seller views & per-seller loyalty config
 
-In the current checkout, when a customer clicks any UPI app button (GPay/PhonePe/Paytm/BHIM) or the "Open Any UPI App" button, the app opens with the payment prefilled. As soon as the user returns to the browser tab (even if they just opened and closed the UPI app without paying), a popup appears with only a **"Yes, Payment Done ✓"** button. Clicking it marks the order as **paid** in the database with no actual verification. The customer can get a "paid" order without paying.
+## 1. Database — new table `seller_loyalty_settings`
 
-The PhonePe-backed "Pay with GPay (Secure)" button is fine — it polls `phonepe-status` and only confirms the order after the backend sees the payment.
+Columns (domain): `seller_id` (uuid, unique), `enabled` (bool, default true), `stamps_required` (int, default 10), `reward_amount` (numeric, default 50), `min_order_value` (numeric, default 0).
 
-## Goal
+RLS:
+- Anyone can read (so customers see their seller's rules).
+- Seller can insert/update their own row (`auth.uid() = seller_id`).
+- Admin can manage all rows.
 
-Only mark an order as **paid** when a backend payment-status check confirms success. Opening and closing a UPI app must never produce a paid order.
+Trigger: `updated_at` auto-update.
 
-## Changes
+## 2. Admin Dashboard — Orders tab refactor
 
-1. **Remove the trust-based confirmation popup** in `src/components/QRCodePayment.tsx`:
-   - Delete the visibility-change handler that shows the "Did you complete the payment?" dialog.
-   - Delete the `showConfirmDialog` AlertDialog and the `handlePaymentConfirmed` shortcut that calls `onPaymentComplete()` without verification.
-   - Remove `upiAppOpened`, `returnCheckRef`, and the unused `paymentRequested` collect-request shortcut that also marks paid without verification.
+In `SellerDashboard.tsx`, when `isAdmin`:
+- Wrap the existing orders content in an inner `Tabs` with one sub-tab per seller (built from `user_roles` where role=`seller`, joined with `profiles` for display name).
+- Each sub-tab renders the existing orders list filtered to that seller's products only (reuse the same per-seller item-filtering logic already used for seller view: keep only items whose product belongs to that seller, recompute subtotal/total).
+- Remove the current admin "all orders mixed together" view.
 
-2. **Route every UPI path through the verified PhonePe initiate/status flow**:
-   - Make the existing `handlePayWithGpay` the single entry point for online payment.
-   - `UPIAppSelector`, the QR code, the "Copy UPI ID", and the "Enter your UPI / Request" inputs become informational only — they no longer trigger `onPaymentComplete`. Either:
-     - Hide them when `paymentMethod === 'online'` and keep only the secure PhonePe button, OR
-     - Keep them visible but show a clear note: "Manual UPI payments are not auto-confirmed. Use the Secure GPay button above so we can verify your payment."
-   - Recommended: hide the manual blocks for online orders to avoid confusion.
+## 3. Admin Dashboard — new `Sellers` tab
 
-3. **Promote the secure button** in `QRCodePayment.tsx`:
-   - Make "Pay ₹X with GPay (Secure)" the primary, full-width action at the top.
-   - While polling, keep the existing "Cancel Payment" affordance so the user can abort.
-   - Order is created/marked paid only from inside the `pollStatus` success branch (already the case for this flow).
+New top-level admin tab listing every seller:
+- Name, phone, email, joined date, product count, total revenue, order count.
+- Quick actions: view their products (jumps to filtered seller-products tab), block/unblock (reuse existing logic).
+- Move cross-seller informational widgets here so individual seller dashboards stay scoped to themselves.
 
-4. **Reassure the user in the UI**:
-   - Add a short line under the secure button: "Order is placed only after we receive payment confirmation from PhonePe."
-   - When the 10-minute timer expires with no confirmed payment, keep the existing auto-cancel (`onTimeout`) so unpaid orders never persist.
+## 4. Seller Dashboard — Loyalty settings
 
-5. **No database/schema changes** required. `payment_status` continues to be set to `'paid'` in `CheckoutForm.handlePaymentSuccess`, but that function will now only run after backend-verified success.
+Add a "Loyalty Settings" card at the top of the existing Loyalty tab for non-admin sellers (admins also see it inside each seller sub-tab if applicable). Editable fields:
+- Enabled toggle
+- Stamps required (number input, 1–50)
+- Reward amount ₹ (number input)
+- Min order value ₹ per stamp (number input)
 
-## Out of scope
+Save button upserts into `seller_loyalty_settings`. Validate with zod (positive numbers, ints for stamps).
 
-- COD flow is unchanged (still `payment_status: 'pending'` until delivery).
-- No changes to the `phonepe-initiate` / `phonepe-status` edge functions.
-- No changes to order ID generation, loyalty, or WhatsApp share.
+## 5. Apply seller loyalty rules
+
+Where loyalty stamps are computed/displayed (StampCard, loyalty claim flow), look up the relevant seller's settings and:
+- Skip stamping entirely if `enabled=false`.
+- Use `stamps_required` instead of hard-coded 10.
+- Only count orders where seller's portion ≥ `min_order_value`.
+- Show `reward_amount` in the reward UI.
+
+If an order spans multiple sellers, evaluate per seller independently.
 
 ## Technical notes
 
-Files touched:
-- `src/components/QRCodePayment.tsx` — remove unverified confirmation paths, restructure UI around the secure PhonePe button.
-- `src/components/UPIAppSelector.tsx` — either no longer rendered for online payments, or its `onAppOpened` prop becomes a no-op (kept for the manual/info case).
+- New file: `supabase/migrations/<ts>_seller_loyalty_settings.sql`.
+- Edits: `src/pages/SellerDashboard.tsx` (orders tab restructure, new Sellers tab, loyalty settings form), `src/components/StampCard.tsx` and any loyalty-claim code path that hard-codes `10`.
+- Reuse existing `SalesReportDashboard` with `sellerId` prop inside each admin sub-tab if useful, otherwise just render orders list per seller.
+- No changes to checkout flow beyond reading the new settings when computing stamps.
 
-No new dependencies, no migrations.
+## Out of scope
+
+- Changing how customer-side loyalty progress UI is themed.
+- Migrating historical loyalty claims to new per-seller numbers (existing claims keep their original `stamps_completed`).
