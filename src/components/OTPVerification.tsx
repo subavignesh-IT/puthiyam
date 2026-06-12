@@ -2,6 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { toast } from '@/hooks/use-toast';
 import { Loader2, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,6 +27,7 @@ const OTPVerification: React.FC<OTPVerificationProps> = ({ phone, onVerified, on
   const [loading, setLoading] = useState(false);
   const [resendTimer, setResendTimer] = useState(30);
   const [canResend, setCanResend] = useState(false);
+  const [showInvalidDialog, setShowInvalidDialog] = useState(false);
 
   // Send real OTP SMS via MSG91 edge function
   const generateOTP = async () => {
@@ -39,7 +49,7 @@ const OTPVerification: React.FC<OTPVerificationProps> = ({ phone, onVerified, on
         description: `SMS sent to ${phone}`,
       });
       setResendTimer(30);
-      setCanResend(false);
+      setCanResend(true);
     } catch (e: any) {
       toast({ title: 'Network error', description: e?.message, variant: 'destructive' });
     }
@@ -86,21 +96,15 @@ const OTPVerification: React.FC<OTPVerificationProps> = ({ phone, onVerified, on
         });
         onVerified();
       } else {
-        toast({
-          title: "Invalid OTP",
-          description: "The OTP you entered is incorrect. Please try again.",
-          variant: "destructive"
-        });
         setOtp('');
+        setShowInvalidDialog(true);
       }
       setLoading(false);
     }, 500);
   };
 
   const handleResend = () => {
-    if (canResend) {
-      generateOTP();
-    }
+    generateOTP();
   };
 
   return (
@@ -146,16 +150,10 @@ const OTPVerification: React.FC<OTPVerificationProps> = ({ phone, onVerified, on
         </Button>
 
         <div className="text-center">
-          {canResend ? (
-            <Button variant="ghost" onClick={handleResend} className="text-primary">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Resend OTP
-            </Button>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              Resend OTP in {resendTimer}s
-            </p>
-          )}
+          <Button variant="ghost" onClick={handleResend} className="text-primary">
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Resend OTP
+          </Button>
         </div>
 
         <Button
@@ -166,6 +164,27 @@ const OTPVerification: React.FC<OTPVerificationProps> = ({ phone, onVerified, on
           ← Back to Login
         </Button>
       </CardContent>
+
+      <AlertDialog open={showInvalidDialog} onOpenChange={setShowInvalidDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Invalid OTP</AlertDialogTitle>
+            <AlertDialogDescription>
+              The OTP you entered is incorrect. Please click "Resend OTP" to receive a new code.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction
+              onClick={() => {
+                setShowInvalidDialog(false);
+                handleResend();
+              }}
+            >
+              Resend OTP
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 };
