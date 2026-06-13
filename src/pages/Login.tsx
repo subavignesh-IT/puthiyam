@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
-import { Mail, Lock, Eye, EyeOff, Phone } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import ProfileEditDialog from '@/components/ProfileEditDialog';
 
 const Login: React.FC = () => {
@@ -25,7 +25,6 @@ const Login: React.FC = () => {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    phone: '',
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -42,15 +41,6 @@ const Login: React.FC = () => {
       toast({
         title: "Missing Fields",
         description: "Please fill in all fields",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!formData.phone || !/^\d{10}$/.test(formData.phone)) {
-      toast({
-        title: "Valid Phone Required",
-        description: "Please enter a valid 10-digit phone number for OTP verification",
         variant: "destructive"
       });
       return;
@@ -94,7 +84,7 @@ const Login: React.FC = () => {
         
         <main className="container mx-auto px-4 py-8 flex items-center justify-center min-h-[60vh]">
           <OTPVerification
-            phone={formData.phone}
+            email={formData.email}
             onVerified={handleOTPVerified}
             onBack={handleOTPBack}
           />
