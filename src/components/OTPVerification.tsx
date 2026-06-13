@@ -16,40 +16,35 @@ import { Loader2, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface OTPVerificationProps {
-  phone: string;
+  email: string;
   onVerified: () => void;
   onBack: () => void;
 }
 
-const OTPVerification: React.FC<OTPVerificationProps> = ({ phone, onVerified, onBack }) => {
+const OTPVerification: React.FC<OTPVerificationProps> = ({ email, onVerified, onBack }) => {
   const [otp, setOtp] = useState('');
-  const [generatedOTP, setGeneratedOTP] = useState('');
   const [loading, setLoading] = useState(false);
-  const [resendTimer, setResendTimer] = useState(30);
-  const [canResend, setCanResend] = useState(false);
   const [showInvalidDialog, setShowInvalidDialog] = useState(false);
 
-  // Send real OTP SMS via MSG91 edge function
+  // Send a 6-digit OTP to the user's email via Supabase Auth (free, unlimited)
   const generateOTP = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('send-otp', {
-        body: { phone },
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: { shouldCreateUser: false },
       });
-      if (error || !data?.success) {
+      if (error) {
         toast({
           title: 'Failed to send OTP',
-          description: error?.message || data?.error || 'Please try again',
+          description: error.message,
           variant: 'destructive',
         });
         return;
       }
-      setGeneratedOTP(data.otp);
       toast({
         title: 'OTP Sent!',
-        description: `SMS sent to ${phone}`,
+        description: `Code emailed to ${email}`,
       });
-      setResendTimer(30);
-      setCanResend(true);
     } catch (e: any) {
       toast({ title: 'Network error', description: e?.message, variant: 'destructive' });
     }
@@ -59,48 +54,35 @@ const OTPVerification: React.FC<OTPVerificationProps> = ({ phone, onVerified, on
     generateOTP();
   }, []);
 
-  useEffect(() => {
-    if (resendTimer > 0 && !canResend) {
-      const timer = setInterval(() => {
-        setResendTimer(prev => {
-          if (prev <= 1) {
-            setCanResend(true);
-            clearInterval(timer);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-      return () => clearInterval(timer);
-    }
-  }, [resendTimer, canResend]);
-
-  const handleVerify = () => {
-    if (otp.length !== 4) {
+  const handleVerify = async () => {
+    if (otp.length !== 6) {
       toast({
         title: "Invalid OTP",
-        description: "Please enter the 4-digit OTP",
+        description: "Please enter the 6-digit OTP",
         variant: "destructive"
       });
       return;
     }
 
     setLoading(true);
+    const { error } = await supabase.auth.verifyOtp({
+      email,
+      token: otp,
+      type: 'email',
+    });
+    setLoading(false);
 
-    // Verify OTP
-    setTimeout(() => {
-      if (otp === generatedOTP) {
-        toast({
-          title: "Verified!",
-          description: "Phone number verified successfully",
-        });
-        onVerified();
-      } else {
-        setOtp('');
-        setShowInvalidDialog(true);
-      }
-      setLoading(false);
-    }, 500);
+    if (error) {
+      setOtp('');
+      setShowInvalidDialog(true);
+      return;
+    }
+
+    toast({
+      title: "Verified!",
+      description: "Email verified successfully",
+    });
+    onVerified();
   };
 
   const handleResend = () => {
@@ -115,13 +97,13 @@ const OTPVerification: React.FC<OTPVerificationProps> = ({ phone, onVerified, on
         </div>
         <CardTitle className="font-serif text-2xl">Verify OTP</CardTitle>
         <CardDescription>
-          Enter the 4-digit code sent to <strong>{phone}</strong>
+          Enter the 6-digit code emailed to <strong>{email}</strong>
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="flex justify-center">
           <InputOTP
-            maxLength={4}
+            maxLength={6}
             value={otp}
             onChange={setOtp}
           >
@@ -130,6 +112,8 @@ const OTPVerification: React.FC<OTPVerificationProps> = ({ phone, onVerified, on
               <InputOTPSlot index={1} />
               <InputOTPSlot index={2} />
               <InputOTPSlot index={3} />
+              <InputOTPSlot index={4} />
+              <InputOTPSlot index={5} />
             </InputOTPGroup>
           </InputOTP>
         </div>
@@ -137,7 +121,7 @@ const OTPVerification: React.FC<OTPVerificationProps> = ({ phone, onVerified, on
         <Button
           onClick={handleVerify}
           className="w-full gradient-hero text-primary-foreground"
-          disabled={loading || otp.length !== 4}
+          disabled={loading || otp.length !== 6}
         >
           {loading ? (
             <>
