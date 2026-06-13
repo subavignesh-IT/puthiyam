@@ -31,7 +31,10 @@ const OTPVerification: React.FC<OTPVerificationProps> = ({ email, onVerified, on
     try {
       const { error } = await supabase.auth.signInWithOtp({
         email,
-        options: { shouldCreateUser: false },
+        options: {
+          shouldCreateUser: false,
+          emailRedirectTo: `${window.location.origin}/`,
+        },
       });
       if (error) {
         toast({

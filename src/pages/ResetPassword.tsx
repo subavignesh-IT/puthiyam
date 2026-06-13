@@ -20,18 +20,44 @@ const ResetPassword: React.FC = () => {
   const [done, setDone] = useState(false);
 
   useEffect(() => {
-    const hash = window.location.hash;
-    if (hash && hash.includes('type=recovery')) {
-      setIsRecovery(true);
-    }
+    let cancelled = false;
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') {
+      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
         setIsRecovery(true);
       }
     });
 
-    return () => subscription.unsubscribe();
+    (async () => {
+      const hash = window.location.hash;
+      if (hash && hash.includes('type=recovery')) {
+        setIsRecovery(true);
+        return;
+      }
+
+      const url = new URL(window.location.href);
+      const code = url.searchParams.get('code');
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        if (!cancelled && !error) {
+          setIsRecovery(true);
+          // Clean the code from the URL
+          window.history.replaceState({}, '', url.pathname);
+          return;
+        }
+      }
+
+      // Fallback: if there's already an active session (e.g. user just clicked the link), allow update
+      const { data } = await supabase.auth.getSession();
+      if (!cancelled && data.session) {
+        setIsRecovery(true);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
