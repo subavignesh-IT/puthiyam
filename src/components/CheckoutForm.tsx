@@ -172,35 +172,52 @@ const CheckoutForm: React.FC = () => {
     }
   };
 
-  const shareImageToWhatsApp = async (toSeller: boolean = false) => {
+  // Seller's WhatsApp number where the bill image should land
+  const SELLER_WHATSAPP = '919361284773';
+
+  const buildShareText = (orderId: string) =>
+    `New PUTHIYAM Order ${orderId}\n` +
+    `Customer: ${formData.name} (${formData.phone})\n` +
+    `${deliveryType === 'shipping' ? 'Delivery: ' + formData.address : 'Self Pickup'}\n` +
+    `Payment: ${paymentMethod === 'cod' ? 'Cash on Delivery' : 'Online (UPI)'}\n` +
+    `Total: ₹${grandTotal}`;
+
+  const shareImageToWhatsApp = async (_toSeller: boolean = false) => {
     const imageUrl = billImageUrl || await generateBillImage();
     if (!imageUrl) return;
+    const orderId = generatedOrderId || `${Date.now()}`;
+    const text = buildShareText(orderId);
 
     try {
-      // Convert data URL to blob
       const res = await fetch(imageUrl);
       const blob = await res.blob();
-      const file = new File([blob], `PUTHIYAM_Bill_${generatedOrderId || Date.now()}.png`, { type: 'image/png' });
+      const file = new File([blob], `PUTHIYAM_Bill_${orderId}.png`, { type: 'image/png' });
 
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        // Opens device share sheet — user taps WhatsApp, then picks the
+        // PUTHIYAM contact (9361284773) to deliver the bill image.
         await navigator.share({
           files: [file],
-          title: `PUTHIYAM Bill - ${generatedOrderId}`,
+          title: `PUTHIYAM Bill - ${orderId}`,
+          text,
         });
-      } else {
-        // Fallback: download the image so user can manually share
-        const link = document.createElement('a');
-        link.download = file.name;
-        link.href = imageUrl;
-        link.click();
-        toast({
-          title: "Bill Downloaded",
-          description: "Share the downloaded image on WhatsApp manually.",
-        });
+        return;
       }
     } catch (err) {
       console.error('Share failed:', err);
     }
+
+    // Fallback: download the image AND open WhatsApp chat with seller pre-addressed
+    const link = document.createElement('a');
+    link.download = `PUTHIYAM_Bill_${orderId}.png`;
+    link.href = imageUrl;
+    link.click();
+    const waUrl = `https://wa.me/${SELLER_WHATSAPP}?text=${encodeURIComponent(text + '\n\n(Please attach the downloaded bill image)')}`;
+    window.open(waUrl, '_blank');
+    toast({
+      title: 'Bill Downloaded',
+      description: 'WhatsApp opened with PUTHIYAM. Attach the downloaded bill image and send.',
+    });
   };
 
   const handlePaymentSuccess = async () => {
@@ -229,7 +246,9 @@ const CheckoutForm: React.FC = () => {
       link.click();
     }
 
-    // Show share dialog for customer
+    // Auto-open WhatsApp share so the bill is ready to send to seller
+    await shareImageToWhatsApp(true);
+    // Also show the dialog as a backup in case the share sheet was dismissed
     setShowShareDialog(true);
 
     // Show thank you toast
@@ -269,7 +288,9 @@ const CheckoutForm: React.FC = () => {
       link.click();
     }
 
-    // Show share dialog for customer
+    // Auto-open WhatsApp share so the bill is ready to send to seller
+    await shareImageToWhatsApp(true);
+    // Also show the dialog as a backup in case the share sheet was dismissed
     setShowShareDialog(true);
 
     // Show thank you toast
