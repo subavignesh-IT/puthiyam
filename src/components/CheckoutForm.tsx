@@ -188,36 +188,31 @@ const CheckoutForm: React.FC = () => {
     const orderId = generatedOrderId || `${Date.now()}`;
     const text = buildShareText(orderId);
 
+    // Always download the bill image
+    const link = document.createElement('a');
+    link.download = `PUTHIYAM_Bill_${orderId}.png`;
+    link.href = imageUrl;
+    link.click();
+
+    // Open WhatsApp chat with seller, pre-filled with order details
+    const waUrl = `https://wa.me/${SELLER_WHATSAPP}?text=${encodeURIComponent(text + '\n\n(Bill image saved to your device — please attach it here.)')}`;
+    window.open(waUrl, '_blank');
+
+    // Try native share sheet too (mobile) so the image can be sent directly
     try {
       const res = await fetch(imageUrl);
       const blob = await res.blob();
       const file = new File([blob], `PUTHIYAM_Bill_${orderId}.png`, { type: 'image/png' });
-
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
-        // Opens device share sheet — user taps WhatsApp, then picks the
-        // PUTHIYAM contact (9361284773) to deliver the bill image.
         await navigator.share({
           files: [file],
           title: `PUTHIYAM Bill - ${orderId}`,
           text,
         });
-        return;
       }
     } catch (err) {
       console.error('Share failed:', err);
     }
-
-    // Fallback: download the image AND open WhatsApp chat with seller pre-addressed
-    const link = document.createElement('a');
-    link.download = `PUTHIYAM_Bill_${orderId}.png`;
-    link.href = imageUrl;
-    link.click();
-    const waUrl = `https://wa.me/${SELLER_WHATSAPP}?text=${encodeURIComponent(text + '\n\n(Please attach the downloaded bill image)')}`;
-    window.open(waUrl, '_blank');
-    toast({
-      title: 'Bill Downloaded',
-      description: 'WhatsApp opened with PUTHIYAM. Attach the downloaded bill image and send.',
-    });
   };
 
   const handlePaymentSuccess = async () => {
