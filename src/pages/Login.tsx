@@ -120,27 +120,6 @@ const Login: React.FC = () => {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number (for OTP)</Label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    id="phone"
-                    name="phone"
-                    type="tel"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    placeholder="e.g. 9876543210"
-                    className="pl-10"
-                    maxLength={10}
-                    required
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  You'll receive a 4-digit OTP on this number
-                </p>
-              </div>
-
               <Button
                 type="submit"
                 className="w-full gradient-hero text-primary-foreground"
