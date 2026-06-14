@@ -15,15 +15,6 @@ import { Phone, CreditCard, Banknote, Share2, Download, MessageCircle } from 'lu
 import QRCodePayment from './QRCodePayment';
 import CheckoutBillImage from './CheckoutBillImage';
 import { generateOrderId, getOrderIdForDisplay } from '@/utils/orderIdGenerator';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 
 const CheckoutForm: React.FC = () => {
   const { items, getTotal, getShippingCost, clearCart } = useCart();
@@ -39,7 +30,6 @@ const CheckoutForm: React.FC = () => {
   const [paymentComplete, setPaymentComplete] = useState(false);
   const [showQR, setShowQR] = useState(false);
   const [generatedOrderId, setGeneratedOrderId] = useState('');
-  const [showShareDialog, setShowShareDialog] = useState(false);
   const billRef = useRef<HTMLDivElement>(null);
   const [billImageUrl, setBillImageUrl] = useState<string | null>(null);
   const [loyaltyCoupon, setLoyaltyCoupon] = useState<{ code: string; stamps: number } | null>(null);
@@ -188,36 +178,31 @@ const CheckoutForm: React.FC = () => {
     const orderId = generatedOrderId || `${Date.now()}`;
     const text = buildShareText(orderId);
 
+    // Always download the bill image
+    const link = document.createElement('a');
+    link.download = `PUTHIYAM_Bill_${orderId}.png`;
+    link.href = imageUrl;
+    link.click();
+
+    // Open WhatsApp chat with seller, pre-filled with order details
+    const waUrl = `https://wa.me/${SELLER_WHATSAPP}?text=${encodeURIComponent(text + '\n\n(Bill image saved to your device — please attach it here.)')}`;
+    window.open(waUrl, '_blank');
+
+    // Try native share sheet too (mobile) so the image can be sent directly
     try {
       const res = await fetch(imageUrl);
       const blob = await res.blob();
       const file = new File([blob], `PUTHIYAM_Bill_${orderId}.png`, { type: 'image/png' });
-
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
-        // Opens device share sheet — user taps WhatsApp, then picks the
-        // PUTHIYAM contact (9361284773) to deliver the bill image.
         await navigator.share({
           files: [file],
           title: `PUTHIYAM Bill - ${orderId}`,
           text,
         });
-        return;
       }
     } catch (err) {
       console.error('Share failed:', err);
     }
-
-    // Fallback: download the image AND open WhatsApp chat with seller pre-addressed
-    const link = document.createElement('a');
-    link.download = `PUTHIYAM_Bill_${orderId}.png`;
-    link.href = imageUrl;
-    link.click();
-    const waUrl = `https://wa.me/${SELLER_WHATSAPP}?text=${encodeURIComponent(text + '\n\n(Please attach the downloaded bill image)')}`;
-    window.open(waUrl, '_blank');
-    toast({
-      title: 'Bill Downloaded',
-      description: 'WhatsApp opened with PUTHIYAM. Attach the downloaded bill image and send.',
-    });
   };
 
   const handlePaymentSuccess = async () => {
@@ -248,15 +233,6 @@ const CheckoutForm: React.FC = () => {
 
     // Auto-open WhatsApp share so the bill is ready to send to seller
     await shareImageToWhatsApp(true);
-    // Also show the dialog as a backup in case the share sheet was dismissed
-    setShowShareDialog(true);
-
-    // Show thank you toast
-    toast({
-      title: "🎉 Thank You!",
-      description: "Your order has been placed successfully.",
-      duration: 8000,
-    });
 
     // Clear cart and loyalty coupon
     localStorage.removeItem('loyaltyCoupon');
@@ -290,15 +266,6 @@ const CheckoutForm: React.FC = () => {
 
     // Auto-open WhatsApp share so the bill is ready to send to seller
     await shareImageToWhatsApp(true);
-    // Also show the dialog as a backup in case the share sheet was dismissed
-    setShowShareDialog(true);
-
-    // Show thank you toast
-    toast({
-      title: "🎉 Order Placed!",
-      description: "Your COD order has been placed. Pay when you receive the order.",
-      duration: 8000,
-    });
 
     // Clear cart and loyalty coupon
     localStorage.removeItem('loyaltyCoupon');
@@ -384,34 +351,6 @@ const CheckoutForm: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* WhatsApp Share Dialog */}
-        <AlertDialog open={showShareDialog} onOpenChange={setShowShareDialog}>
-          <AlertDialogContent className="text-center">
-            <AlertDialogHeader className="items-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                <MessageCircle className="w-8 h-8 text-green-600" />
-              </div>
-              <AlertDialogTitle className="text-lg">
-                📄 Kindly send this bill to WhatsApp
-              </AlertDialogTitle>
-              <AlertDialogDescription className="text-sm">
-                Please share your bill image with us on WhatsApp for order confirmation.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter className="flex-col gap-2 sm:flex-row justify-center">
-              <AlertDialogAction
-                onClick={() => { shareImageToWhatsApp(); setShowShareDialog(false); }}
-                className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto"
-              >
-                <MessageCircle className="w-4 h-4 mr-2" />
-                Share on WhatsApp
-              </AlertDialogAction>
-              <Button onClick={() => setShowShareDialog(false)} variant="ghost" size="sm" className="text-muted-foreground">
-                Skip
-              </Button>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
       </>
     );
   }
