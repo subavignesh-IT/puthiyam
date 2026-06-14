@@ -361,34 +361,6 @@ const CheckoutForm: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* WhatsApp Share Dialog */}
-        <AlertDialog open={showShareDialog} onOpenChange={setShowShareDialog}>
-          <AlertDialogContent className="text-center">
-            <AlertDialogHeader className="items-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                <MessageCircle className="w-8 h-8 text-green-600" />
-              </div>
-              <AlertDialogTitle className="text-lg">
-                📄 Kindly send this bill to WhatsApp
-              </AlertDialogTitle>
-              <AlertDialogDescription className="text-sm">
-                Please share your bill image with us on WhatsApp for order confirmation.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter className="flex-col gap-2 sm:flex-row justify-center">
-              <AlertDialogAction
-                onClick={() => { shareImageToWhatsApp(); setShowShareDialog(false); }}
-                className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto"
-              >
-                <MessageCircle className="w-4 h-4 mr-2" />
-                Share on WhatsApp
-              </AlertDialogAction>
-              <Button onClick={() => setShowShareDialog(false)} variant="ghost" size="sm" className="text-muted-foreground">
-                Skip
-              </Button>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
       </>
     );
   }
