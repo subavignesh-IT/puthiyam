@@ -248,15 +248,6 @@ const CheckoutForm: React.FC = () => {
 
     // Auto-open WhatsApp share so the bill is ready to send to seller
     await shareImageToWhatsApp(true);
-    // Also show the dialog as a backup in case the share sheet was dismissed
-    setShowShareDialog(true);
-
-    // Show thank you toast
-    toast({
-      title: "🎉 Thank You!",
-      description: "Your order has been placed successfully.",
-      duration: 8000,
-    });
 
     // Clear cart and loyalty coupon
     localStorage.removeItem('loyaltyCoupon');
@@ -290,15 +281,6 @@ const CheckoutForm: React.FC = () => {
 
     // Auto-open WhatsApp share so the bill is ready to send to seller
     await shareImageToWhatsApp(true);
-    // Also show the dialog as a backup in case the share sheet was dismissed
-    setShowShareDialog(true);
-
-    // Show thank you toast
-    toast({
-      title: "🎉 Order Placed!",
-      description: "Your COD order has been placed. Pay when you receive the order.",
-      duration: 8000,
-    });
 
     // Clear cart and loyalty coupon
     localStorage.removeItem('loyaltyCoupon');
