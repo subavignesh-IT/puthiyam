@@ -15,15 +15,6 @@ import { Phone, CreditCard, Banknote, Share2, Download, MessageCircle } from 'lu
 import QRCodePayment from './QRCodePayment';
 import CheckoutBillImage from './CheckoutBillImage';
 import { generateOrderId, getOrderIdForDisplay } from '@/utils/orderIdGenerator';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 
 const CheckoutForm: React.FC = () => {
   const { items, getTotal, getShippingCost, clearCart } = useCart();
@@ -39,7 +30,6 @@ const CheckoutForm: React.FC = () => {
   const [paymentComplete, setPaymentComplete] = useState(false);
   const [showQR, setShowQR] = useState(false);
   const [generatedOrderId, setGeneratedOrderId] = useState('');
-  const [showShareDialog, setShowShareDialog] = useState(false);
   const billRef = useRef<HTMLDivElement>(null);
   const [billImageUrl, setBillImageUrl] = useState<string | null>(null);
   const [loyaltyCoupon, setLoyaltyCoupon] = useState<{ code: string; stamps: number } | null>(null);
