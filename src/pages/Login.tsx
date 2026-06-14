@@ -4,13 +4,12 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import OTPVerification from '@/components/OTPVerification';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
-import { Mail, Lock, Eye, EyeOff, Phone } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import ProfileEditDialog from '@/components/ProfileEditDialog';
 
 const Login: React.FC = () => {
@@ -18,14 +17,12 @@ const Login: React.FC = () => {
   const { signIn } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [showOTP, setShowOTP] = useState(false);
   const [showForgot, setShowForgot] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotLoading, setForgotLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    phone: '',
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -47,15 +44,6 @@ const Login: React.FC = () => {
       return;
     }
 
-    if (!formData.phone || !/^\d{10}$/.test(formData.phone)) {
-      toast({
-        title: "Valid Phone Required",
-        description: "Please enter a valid 10-digit phone number for OTP verification",
-        variant: "destructive"
-      });
-      return;
-    }
-
     setLoading(true);
     const { error } = await signIn(formData.email, formData.password);
     setLoading(false);
@@ -69,41 +57,12 @@ const Login: React.FC = () => {
       return;
     }
 
-    // Show OTP verification after successful login
-    setShowOTP(true);
-  };
-
-  const handleOTPVerified = () => {
     toast({
       title: "Welcome Back!",
       description: "You have successfully logged in",
     });
     navigate('/');
   };
-
-  const handleOTPBack = () => {
-    setShowOTP(false);
-    // Sign out since OTP wasn't verified
-    // User needs to login again
-  };
-
-  if (showOTP) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        
-        <main className="container mx-auto px-4 py-8 flex items-center justify-center min-h-[60vh]">
-          <OTPVerification
-            phone={formData.phone}
-            onVerified={handleOTPVerified}
-            onBack={handleOTPBack}
-          />
-        </main>
-
-        <Footer />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -159,27 +118,6 @@ const Login: React.FC = () => {
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number (for OTP)</Label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    id="phone"
-                    name="phone"
-                    type="tel"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    placeholder="e.g. 9876543210"
-                    className="pl-10"
-                    maxLength={10}
-                    required
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  You'll receive a 4-digit OTP on this number
-                </p>
               </div>
 
               <Button
