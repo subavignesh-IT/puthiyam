@@ -8,49 +8,30 @@ interface UPIAppSelectorProps {
   onAppOpened: () => void;
 }
 
-// UPI app configurations
+// UPI app configurations — scheme is the app-specific prefix; we replace
+// the leading `upi://` from the standard UPI URL so the chosen app opens.
 const UPI_APPS = [
-  {
-    name: 'Google Pay',
-    icon: '💳',
-    scheme: 'gpay://upi/',
-    package: 'com.google.android.apps.nbu.paisa.user',
-    fallbackUrl: 'https://pay.google.com',
-  },
-  {
-    name: 'PhonePe',
-    icon: '📱',
-    scheme: 'phonepe://pay',
-    package: 'com.phonepe.app',
-    fallbackUrl: 'https://www.phonepe.com',
-  },
-  {
-    name: 'Paytm',
-    icon: '💰',
-    scheme: 'paytmmp://pay',
-    package: 'net.one97.paytm',
-    fallbackUrl: 'https://paytm.com',
-  },
-  {
-    name: 'BHIM',
-    icon: '🏦',
-    scheme: 'upi://pay',
-    package: 'in.org.npci.upiapp',
-    fallbackUrl: 'https://www.bhimupi.org.in',
-  },
+  { name: 'Google Pay', icon: '💳', scheme: 'gpay://upi/pay' },
+  { name: 'PhonePe',    icon: '📱', scheme: 'phonepe://pay' },
+  { name: 'Paytm',      icon: '💰', scheme: 'paytmmp://pay' },
+  { name: 'BHIM',       icon: '🏦', scheme: 'upi://pay' },
+  { name: 'Amazon Pay', icon: '🛒', scheme: 'amazonpay://pay' },
+  { name: 'WhatsApp Pay', icon: '💬', scheme: 'whatsapp://pay' },
+  { name: 'CRED',       icon: '💎', scheme: 'credpay://pay' },
 ];
 
 const UPIAppSelector: React.FC<UPIAppSelectorProps> = ({ upiUrl, amount, onAppOpened }) => {
   const handleAppClick = (app: typeof UPI_APPS[0]) => {
     onAppOpened();
-    
-    // For mobile devices, try to open the specific app
-    // All UPI apps can handle the standard upi:// URL
-    if (/Android|iPhone|iPad/i.test(navigator.userAgent)) {
-      // On mobile, try direct UPI URL which system will handle
-      window.location.href = upiUrl;
-    } else {
-      // On desktop, just use the UPI URL
+    // Replace the `upi://pay` prefix with the chosen app's scheme so the
+    // OS opens that specific UPI app. Falls back to standard UPI URL if
+    // the app isn't installed.
+    const appUrl = upiUrl.replace(/^upi:\/\/pay/, app.scheme);
+    try {
+      window.location.href = appUrl;
+      // Fallback to standard UPI URL after a short delay
+      setTimeout(() => { window.location.href = upiUrl; }, 1500);
+    } catch {
       window.location.href = upiUrl;
     }
   };
@@ -66,7 +47,7 @@ const UPIAppSelector: React.FC<UPIAppSelectorProps> = ({ upiUrl, amount, onAppOp
         Choose your preferred UPI app to pay <strong>₹{amount}</strong>
       </p>
       
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 gap-3">
         {UPI_APPS.map((app) => (
           <Button
             key={app.name}
