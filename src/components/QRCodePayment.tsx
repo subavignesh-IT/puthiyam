@@ -15,7 +15,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import UPIAppSelector from './UPIAppSelector';
+import { Smartphone } from 'lucide-react';
 
 interface QRCodePaymentProps {
   total: number;
@@ -70,9 +70,10 @@ const QRCodePayment: React.FC<QRCodePaymentProps> = ({ total, onPaymentComplete,
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleAppOpened = useCallback(() => {
+  const handleOpenDefaultUpiApp = useCallback(() => {
+    window.location.href = upiUrl;
     setUpiAppOpened(true);
-  }, []);
+  }, [upiUrl]);
 
   const handleCopyUpi = () => {
     navigator.clipboard.writeText(upiId);
@@ -263,12 +264,20 @@ const QRCodePayment: React.FC<QRCodePaymentProps> = ({ total, onPaymentComplete,
             </div>
           </div>
 
-          {/* UPI App Selector */}
-          <UPIAppSelector 
-            upiUrl={upiUrl} 
-            amount={total} 
-            onAppOpened={handleAppOpened}
-          />
+          {/* Open default UPI app */}
+          <div className="space-y-2">
+            <Button
+              onClick={handleOpenDefaultUpiApp}
+              className="w-full h-12"
+              variant="outline"
+            >
+              <Smartphone className="w-4 h-4 mr-2" />
+              Pay ₹{total} with UPI App
+            </Button>
+            <p className="text-[11px] text-center text-muted-foreground">
+              Opens your device's default UPI app (GPay, PhonePe, Paytm, BHIM, etc.)
+            </p>
+          </div>
 
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
