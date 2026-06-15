@@ -254,14 +254,48 @@ export type Database = {
           },
         ]
       }
+      product_wholesale_tiers: {
+        Row: {
+          created_at: string
+          id: string
+          min_quantity: number
+          price: number
+          product_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          min_quantity: number
+          price: number
+          product_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          min_quantity?: number
+          price?: number
+          product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_wholesale_tiers_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           base_price: number
           category: string
           created_at: string
+          delivery_charge: number
           description: string | null
           discount_amount: number
           discount_type: string | null
+          free_delivery_quantity: number
           id: string
           is_active: boolean
           is_in_stock: boolean
@@ -277,9 +311,11 @@ export type Database = {
           base_price: number
           category: string
           created_at?: string
+          delivery_charge?: number
           description?: string | null
           discount_amount?: number
           discount_type?: string | null
+          free_delivery_quantity?: number
           id?: string
           is_active?: boolean
           is_in_stock?: boolean
@@ -295,9 +331,11 @@ export type Database = {
           base_price?: number
           category?: string
           created_at?: string
+          delivery_charge?: number
           description?: string | null
           discount_amount?: number
           discount_type?: string | null
+          free_delivery_quantity?: number
           id?: string
           is_active?: boolean
           is_in_stock?: boolean
