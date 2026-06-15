@@ -233,7 +233,7 @@ const QRCodePayment: React.FC<QRCodePaymentProps> = ({ total, onPaymentComplete,
                 {gpayLoading ? (
                   <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Starting secure payment...</>
                 ) : (
-                  <>Pay ₹{total} with GPay (Secure)</>
+                  <>Pay ₹{total} with UPI (Secure)</>
                 )}
               </Button>
             ) : (
@@ -272,10 +272,10 @@ const QRCodePayment: React.FC<QRCodePaymentProps> = ({ total, onPaymentComplete,
               variant="outline"
             >
               <Smartphone className="w-4 h-4 mr-2" />
-              Pay ₹{total} with UPI App
+              Pay ₹{total} with UPI
             </Button>
             <p className="text-[11px] text-center text-muted-foreground">
-              Opens your device's default UPI app (GPay, PhonePe, Paytm, BHIM, etc.)
+              Opens your default UPI app
             </p>
           </div>
 

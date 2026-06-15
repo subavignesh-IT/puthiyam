@@ -17,7 +17,7 @@ import CheckoutBillImage from './CheckoutBillImage';
 import { generateOrderId, getOrderIdForDisplay } from '@/utils/orderIdGenerator';
 
 const CheckoutForm: React.FC = () => {
-  const { items, getTotal, getShippingCost, clearCart } = useCart();
+  const { items, getTotal, getShippingCost, clearCart, getItemEffectivePrice } = useCart();
   const { user } = useAuth();
   const { defaults, loading: defaultsLoading, updateDefaults } = useCustomerDefaults();
   const [deliveryType, setDeliveryType] = useState<'shipping' | 'self-pickup'>('self-pickup');
@@ -96,13 +96,16 @@ const CheckoutForm: React.FC = () => {
         payment_status: paymentMethod === 'online' ? 'paid' : 'pending',
         order_status: 'pending',
         order_number: orderId,
-        items: items.map(item => ({
-          id: item.id,
-          name: item.name,
-          price: item.selectedVariant ? item.selectedVariant.price : item.price,
-          quantity: item.quantity,
-          selectedVariant: item.selectedVariant ? { weight: item.selectedVariant.weight, price: item.selectedVariant.price } : undefined,
-        })) as unknown as import('@/integrations/supabase/types').Json,
+        items: items.map(item => {
+          const effPrice = getItemEffectivePrice(item);
+          return {
+            id: item.id,
+            name: item.name,
+            price: effPrice,
+            quantity: item.quantity,
+            selectedVariant: item.selectedVariant ? { weight: item.selectedVariant.weight, price: effPrice } : undefined,
+          };
+        }) as unknown as import('@/integrations/supabase/types').Json,
         subtotal: subtotal,
         shipping_cost: shippingCost,
         total: grandTotal,

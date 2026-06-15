@@ -186,6 +186,11 @@ const SellerDashboard: React.FC = () => {
   const [productImages, setProductImages] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
 
+  // Per-product delivery & wholesale tiers
+  const [deliveryCharge, setDeliveryCharge] = useState('0');
+  const [freeDeliveryQuantity, setFreeDeliveryQuantity] = useState('0');
+  const [wholesaleTiers, setWholesaleTiers] = useState<{ minQuantity: number; price: number }[]>([]);
+
   // New category/packing type form
   const [newCategory, setNewCategory] = useState('');
   const [newPackingType, setNewPackingType] = useState('');
@@ -1022,7 +1027,9 @@ const SellerDashboard: React.FC = () => {
           discount_amount: parseFloat(discountAmount) || 0,
           discount_type: discountType,
           sale_end_time: isLimitedSale && saleEndTime ? new Date(saleEndTime).toISOString() : null,
-        })
+          delivery_charge: parseFloat(deliveryCharge) || 0,
+          free_delivery_quantity: parseInt(freeDeliveryQuantity) || 0,
+        } as any)
         .select()
         .single();
 
@@ -1043,6 +1050,14 @@ const SellerDashboard: React.FC = () => {
         .insert(variantInserts);
 
       if (variantError) throw variantError;
+
+      // Insert wholesale tiers
+      const tierInserts = wholesaleTiers
+        .filter(t => t.minQuantity > 0 && t.price >= 0)
+        .map(t => ({ product_id: product.id, min_quantity: t.minQuantity, price: t.price }));
+      if (tierInserts.length > 0) {
+        await supabase.from('product_wholesale_tiers').insert(tierInserts);
+      }
 
       // Upload images
       for (let i = 0; i < productImages.length; i++) {
@@ -1106,6 +1121,9 @@ const SellerDashboard: React.FC = () => {
     setVariants([{ quantity: 50, price: 50, wholesalePrice: 0, isDefault: true, stockQuantity: 100 }]);
     setProductImages([]);
     setEditingProduct(null);
+    setDeliveryCharge('0');
+    setFreeDeliveryQuantity('0');
+    setWholesaleTiers([]);
   };
 
   const handleUpdateProduct = async () => {
@@ -1135,7 +1153,9 @@ const SellerDashboard: React.FC = () => {
           discount_amount: parseFloat(discountAmount) || 0,
           discount_type: discountType,
           sale_end_time: isLimitedSale && saleEndTime ? new Date(saleEndTime).toISOString() : null,
-        })
+          delivery_charge: parseFloat(deliveryCharge) || 0,
+          free_delivery_quantity: parseInt(freeDeliveryQuantity) || 0,
+        } as any)
         .eq('id', editingProduct.id);
 
       if (productError) throw productError;
@@ -1157,6 +1177,15 @@ const SellerDashboard: React.FC = () => {
         .insert(variantInserts);
 
       if (variantError) throw variantError;
+
+      // Replace wholesale tiers
+      await supabase.from('product_wholesale_tiers').delete().eq('product_id', editingProduct.id);
+      const tierInserts = wholesaleTiers
+        .filter(t => t.minQuantity > 0 && t.price >= 0)
+        .map(t => ({ product_id: editingProduct.id, min_quantity: t.minQuantity, price: t.price }));
+      if (tierInserts.length > 0) {
+        await supabase.from('product_wholesale_tiers').insert(tierInserts);
+      }
 
       // Upload new images if any
       for (let i = 0; i < productImages.length; i++) {
@@ -2175,7 +2204,7 @@ const SellerDashboard: React.FC = () => {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => {
+                              onClick={async () => {
                                 setEditingProduct(product);
                                 setActiveTab('add');
                                 // Pre-fill form with product data
@@ -2198,6 +2227,14 @@ const SellerDashboard: React.FC = () => {
                                   isDefault: v.is_default || false,
                                   stockQuantity: v.stock_quantity,
                                 })));
+                                setDeliveryCharge(String((product as any).delivery_charge ?? 0));
+                                setFreeDeliveryQuantity(String((product as any).free_delivery_quantity ?? 0));
+                                const { data: tiersData } = await supabase
+                                  .from('product_wholesale_tiers')
+                                  .select('min_quantity, price')
+                                  .eq('product_id', product.id)
+                                  .order('min_quantity');
+                                setWholesaleTiers((tiersData || []).map((t: any) => ({ minQuantity: t.min_quantity, price: Number(t.price) })));
                               }}
                             >
                               <Edit className="w-4 h-4 mr-1" />
@@ -2453,6 +2490,89 @@ const SellerDashboard: React.FC = () => {
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Delivery Charge */}
+                <div className="p-4 bg-muted/50 rounded-lg space-y-3">
+                  <Label className="text-sm font-semibold">Delivery Charges</Label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Delivery charge (₹)</Label>
+                      <Input
+                        type="number"
+                        value={deliveryCharge}
+                        onChange={(e) => setDeliveryCharge(e.target.value)}
+                        placeholder="0"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Free delivery when quantity ≥</Label>
+                      <Input
+                        type="number"
+                        value={freeDeliveryQuantity}
+                        onChange={(e) => setFreeDeliveryQuantity(e.target.value)}
+                        placeholder="0 (always charge)"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    0 quantity = delivery is always charged. Otherwise charge is waived once buyer reaches that quantity of this product.
+                  </p>
+                </div>
+
+                {/* Wholesale Tiers */}
+                <div className="p-4 bg-muted/50 rounded-lg space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-semibold">Wholesale Price Tiers</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setWholesaleTiers([...wholesaleTiers, { minQuantity: 5, price: 0 }])}
+                    >
+                      <Plus className="w-4 h-4 mr-1" /> Add Tier
+                    </Button>
+                  </div>
+                  {wholesaleTiers.length === 0 && (
+                    <p className="text-xs text-muted-foreground">No tiers. Add a tier so buyers get a lower price when they order more.</p>
+                  )}
+                  {wholesaleTiers.map((tier, idx) => (
+                    <div key={idx} className="flex flex-wrap items-end gap-3 p-3 bg-background rounded-md">
+                      <div className="flex-1 min-w-[100px]">
+                        <Label className="text-xs">Min Quantity</Label>
+                        <Input
+                          type="number"
+                          value={tier.minQuantity}
+                          onChange={(e) => {
+                            const v = parseInt(e.target.value) || 0;
+                            setWholesaleTiers(wholesaleTiers.map((t, i) => i === idx ? { ...t, minQuantity: v } : t));
+                          }}
+                          placeholder="5"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-[100px]">
+                        <Label className="text-xs">Price per unit (₹)</Label>
+                        <Input
+                          type="number"
+                          value={tier.price}
+                          onChange={(e) => {
+                            const v = parseFloat(e.target.value) || 0;
+                            setWholesaleTiers(wholesaleTiers.map((t, i) => i === idx ? { ...t, price: v } : t));
+                          }}
+                          placeholder="0"
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setWholesaleTiers(wholesaleTiers.filter((_, i) => i !== idx))}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
                   ))}
                 </div>

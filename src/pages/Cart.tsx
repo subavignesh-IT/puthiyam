@@ -12,7 +12,7 @@ import LastOrderBillBanner from '@/components/LastOrderBillBanner';
 import { Button } from '@/components/ui/button';
 
 const Cart: React.FC = () => {
-  const { items, getTotal } = useCart();
+  const { items, getTotal, getItemEffectivePrice } = useCart();
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -48,12 +48,15 @@ const Cart: React.FC = () => {
               
               <div className="bg-muted/50 rounded-lg p-4 mt-6">
                 <h3 className="font-semibold mb-3">Price Details</h3>
-                {items.map(item => (
-                  <div key={item.id} className="flex justify-between text-sm text-muted-foreground mb-1">
-                    <span>{item.name}</span>
-                    <span>₹{item.price} × {item.quantity} = ₹{item.price * item.quantity}</span>
-                  </div>
-                ))}
+                {items.map(item => {
+                  const p = getItemEffectivePrice(item);
+                  return (
+                    <div key={item.id} className="flex justify-between text-sm text-muted-foreground mb-1">
+                      <span>{item.name}</span>
+                      <span>₹{p} × {item.quantity} = ₹{p * item.quantity}</span>
+                    </div>
+                  );
+                })}
                 <div className="border-t border-border mt-3 pt-3 flex justify-between font-semibold">
                   <span>Subtotal</span>
                   <span className="text-primary">₹{getTotal()}</span>

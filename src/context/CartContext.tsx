@@ -11,6 +11,8 @@ interface CartContextType {
   getTotal: () => number;
   getShippingCost: () => number;
   getItemCount: () => number;
+  getItemEffectivePrice: (item: CartItem) => number;
+  getItemDeliveryCharge: (item: CartItem) => number;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -96,17 +98,38 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setItems([]);
   }, []);
 
+  const getItemEffectivePrice = useCallback((item: CartItem) => {
+    const basePrice = item.selectedVariant ? item.selectedVariant.price : item.price;
+    const tiers = item.wholesaleTiers;
+    if (tiers && tiers.length > 0) {
+      const applicable = tiers
+        .filter(t => item.quantity >= t.minQuantity)
+        .sort((a, b) => b.minQuantity - a.minQuantity)[0];
+      if (applicable) return applicable.price;
+    }
+    return basePrice;
+  }, []);
+
+  const getItemDeliveryCharge = useCallback((item: CartItem) => {
+    const charge = item.deliveryCharge ?? 0;
+    if (charge <= 0) return 0;
+    const threshold = item.freeDeliveryQuantity ?? 0;
+    if (threshold > 0 && item.quantity >= threshold) return 0;
+    return charge;
+  }, []);
+
   const getTotal = useCallback(() => {
-    return items.reduce((sum, item) => {
-      const price = item.selectedVariant ? item.selectedVariant.price : item.price;
-      return sum + price * item.quantity;
-    }, 0);
-  }, [items]);
+    return items.reduce((sum, item) => sum + getItemEffectivePrice(item) * item.quantity, 0);
+  }, [items, getItemEffectivePrice]);
 
   const getShippingCost = useCallback(() => {
+    const hasPerProductCharge = items.some(i => (i.deliveryCharge ?? 0) > 0);
+    if (hasPerProductCharge) {
+      return items.reduce((sum, item) => sum + getItemDeliveryCharge(item), 0);
+    }
     const total = getTotal();
     return total < 200 ? 100 : 0;
-  }, [getTotal]);
+  }, [items, getTotal, getItemDeliveryCharge]);
 
   const getItemCount = useCallback(() => {
     return items.reduce((sum, item) => sum + item.quantity, 0);
@@ -123,6 +146,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         getTotal,
         getShippingCost,
         getItemCount,
+        getItemEffectivePrice,
+        getItemDeliveryCharge,
       }}
     >
       {children}
