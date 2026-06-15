@@ -2494,6 +2494,89 @@ const SellerDashboard: React.FC = () => {
                   ))}
                 </div>
 
+                {/* Delivery Charge */}
+                <div className="p-4 bg-muted/50 rounded-lg space-y-3">
+                  <Label className="text-sm font-semibold">Delivery Charges</Label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Delivery charge (₹)</Label>
+                      <Input
+                        type="number"
+                        value={deliveryCharge}
+                        onChange={(e) => setDeliveryCharge(e.target.value)}
+                        placeholder="0"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Free delivery when quantity ≥</Label>
+                      <Input
+                        type="number"
+                        value={freeDeliveryQuantity}
+                        onChange={(e) => setFreeDeliveryQuantity(e.target.value)}
+                        placeholder="0 (always charge)"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    0 quantity = delivery is always charged. Otherwise charge is waived once buyer reaches that quantity of this product.
+                  </p>
+                </div>
+
+                {/* Wholesale Tiers */}
+                <div className="p-4 bg-muted/50 rounded-lg space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-semibold">Wholesale Price Tiers</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setWholesaleTiers([...wholesaleTiers, { minQuantity: 5, price: 0 }])}
+                    >
+                      <Plus className="w-4 h-4 mr-1" /> Add Tier
+                    </Button>
+                  </div>
+                  {wholesaleTiers.length === 0 && (
+                    <p className="text-xs text-muted-foreground">No tiers. Add a tier so buyers get a lower price when they order more.</p>
+                  )}
+                  {wholesaleTiers.map((tier, idx) => (
+                    <div key={idx} className="flex flex-wrap items-end gap-3 p-3 bg-background rounded-md">
+                      <div className="flex-1 min-w-[100px]">
+                        <Label className="text-xs">Min Quantity</Label>
+                        <Input
+                          type="number"
+                          value={tier.minQuantity}
+                          onChange={(e) => {
+                            const v = parseInt(e.target.value) || 0;
+                            setWholesaleTiers(wholesaleTiers.map((t, i) => i === idx ? { ...t, minQuantity: v } : t));
+                          }}
+                          placeholder="5"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-[100px]">
+                        <Label className="text-xs">Price per unit (₹)</Label>
+                        <Input
+                          type="number"
+                          value={tier.price}
+                          onChange={(e) => {
+                            const v = parseFloat(e.target.value) || 0;
+                            setWholesaleTiers(wholesaleTiers.map((t, i) => i === idx ? { ...t, price: v } : t));
+                          }}
+                          placeholder="0"
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setWholesaleTiers(wholesaleTiers.filter((_, i) => i !== idx))}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+
                 {/* Images */}
                 <div className="space-y-4">
                   <Label>Product Images</Label>
