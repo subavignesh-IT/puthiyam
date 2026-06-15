@@ -162,6 +162,20 @@ const CheckoutForm: React.FC = () => {
     }
   };
 
+  const persistLastOrder = (imageUrl: string | null) => {
+    if (!imageUrl) return;
+    try {
+      localStorage.setItem('lastOrderBill', JSON.stringify({
+        orderId: generatedOrderId || `${Date.now()}`,
+        imageUrl,
+        timestamp: Date.now(),
+      }));
+      window.dispatchEvent(new Event('lastOrderBill:update'));
+    } catch (e) {
+      console.error('persistLastOrder failed', e);
+    }
+  };
+
   // Seller's WhatsApp number where the bill image should land
   const SELLER_WHATSAPP = '919361284773';
 
@@ -234,6 +248,9 @@ const CheckoutForm: React.FC = () => {
     // Auto-open WhatsApp share so the bill is ready to send to seller
     await shareImageToWhatsApp(true);
 
+    // Persist last order for 5-min download banner on cart
+    persistLastOrder(imageUrl);
+
     // Clear cart and loyalty coupon
     localStorage.removeItem('loyaltyCoupon');
     clearCart();
@@ -266,6 +283,9 @@ const CheckoutForm: React.FC = () => {
 
     // Auto-open WhatsApp share so the bill is ready to send to seller
     await shareImageToWhatsApp(true);
+
+    // Persist last order for 5-min download banner on cart
+    persistLastOrder(imageUrl);
 
     // Clear cart and loyalty coupon
     localStorage.removeItem('loyaltyCoupon');
