@@ -4,6 +4,11 @@ export interface ProductVariant {
   stockQuantity?: number;
 }
 
+export interface WholesaleTier {
+  minQuantity: number;
+  price: number;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -20,6 +25,9 @@ export interface Product {
   discountType?: 'amount' | 'percentage';
   saleEndTime?: string | null;
   totalStock?: number;
+  deliveryCharge?: number;
+  freeDeliveryQuantity?: number;
+  wholesaleTiers?: WholesaleTier[];
 }
 
 export interface CartItem extends Product {
