@@ -162,6 +162,20 @@ const CheckoutForm: React.FC = () => {
     }
   };
 
+  const persistLastOrder = (imageUrl: string | null) => {
+    if (!imageUrl) return;
+    try {
+      localStorage.setItem('lastOrderBill', JSON.stringify({
+        orderId: generatedOrderId || `${Date.now()}`,
+        imageUrl,
+        timestamp: Date.now(),
+      }));
+      window.dispatchEvent(new Event('lastOrderBill:update'));
+    } catch (e) {
+      console.error('persistLastOrder failed', e);
+    }
+  };
+
   // Seller's WhatsApp number where the bill image should land
   const SELLER_WHATSAPP = '919361284773';
 
