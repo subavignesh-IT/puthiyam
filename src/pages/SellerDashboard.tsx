@@ -186,6 +186,11 @@ const SellerDashboard: React.FC = () => {
   const [productImages, setProductImages] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
 
+  // Per-product delivery & wholesale tiers
+  const [deliveryCharge, setDeliveryCharge] = useState('0');
+  const [freeDeliveryQuantity, setFreeDeliveryQuantity] = useState('0');
+  const [wholesaleTiers, setWholesaleTiers] = useState<{ minQuantity: number; price: number }[]>([]);
+
   // New category/packing type form
   const [newCategory, setNewCategory] = useState('');
   const [newPackingType, setNewPackingType] = useState('');
@@ -1022,7 +1027,9 @@ const SellerDashboard: React.FC = () => {
           discount_amount: parseFloat(discountAmount) || 0,
           discount_type: discountType,
           sale_end_time: isLimitedSale && saleEndTime ? new Date(saleEndTime).toISOString() : null,
-        })
+          delivery_charge: parseFloat(deliveryCharge) || 0,
+          free_delivery_quantity: parseInt(freeDeliveryQuantity) || 0,
+        } as any)
         .select()
         .single();
 
@@ -1043,6 +1050,14 @@ const SellerDashboard: React.FC = () => {
         .insert(variantInserts);
 
       if (variantError) throw variantError;
+
+      // Insert wholesale tiers
+      const tierInserts = wholesaleTiers
+        .filter(t => t.minQuantity > 0 && t.price >= 0)
+        .map(t => ({ product_id: product.id, min_quantity: t.minQuantity, price: t.price }));
+      if (tierInserts.length > 0) {
+        await supabase.from('product_wholesale_tiers').insert(tierInserts);
+      }
 
       // Upload images
       for (let i = 0; i < productImages.length; i++) {
@@ -1106,6 +1121,9 @@ const SellerDashboard: React.FC = () => {
     setVariants([{ quantity: 50, price: 50, wholesalePrice: 0, isDefault: true, stockQuantity: 100 }]);
     setProductImages([]);
     setEditingProduct(null);
+    setDeliveryCharge('0');
+    setFreeDeliveryQuantity('0');
+    setWholesaleTiers([]);
   };
 
   const handleUpdateProduct = async () => {
@@ -1135,7 +1153,9 @@ const SellerDashboard: React.FC = () => {
           discount_amount: parseFloat(discountAmount) || 0,
           discount_type: discountType,
           sale_end_time: isLimitedSale && saleEndTime ? new Date(saleEndTime).toISOString() : null,
-        })
+          delivery_charge: parseFloat(deliveryCharge) || 0,
+          free_delivery_quantity: parseInt(freeDeliveryQuantity) || 0,
+        } as any)
         .eq('id', editingProduct.id);
 
       if (productError) throw productError;
@@ -1157,6 +1177,15 @@ const SellerDashboard: React.FC = () => {
         .insert(variantInserts);
 
       if (variantError) throw variantError;
+
+      // Replace wholesale tiers
+      await supabase.from('product_wholesale_tiers').delete().eq('product_id', editingProduct.id);
+      const tierInserts = wholesaleTiers
+        .filter(t => t.minQuantity > 0 && t.price >= 0)
+        .map(t => ({ product_id: editingProduct.id, min_quantity: t.minQuantity, price: t.price }));
+      if (tierInserts.length > 0) {
+        await supabase.from('product_wholesale_tiers').insert(tierInserts);
+      }
 
       // Upload new images if any
       for (let i = 0; i < productImages.length; i++) {
