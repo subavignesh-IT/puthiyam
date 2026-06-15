@@ -72,9 +72,10 @@ const Index: React.FC = () => {
       // Fetch variants and images for each product
       const productsWithDetails: Product[] = await Promise.all(
         (productsData || []).map(async (product) => {
-          const [variantsRes, imagesRes] = await Promise.all([
+          const [variantsRes, imagesRes, tiersRes] = await Promise.all([
             supabase.from('product_variants').select('*').eq('product_id', product.id).order('price'),
             supabase.from('product_images').select('*').eq('product_id', product.id).order('display_order'),
+            supabase.from('product_wholesale_tiers').select('min_quantity, price').eq('product_id', product.id).order('min_quantity'),
           ]);
 
           const variants = variantsRes.data || [];
@@ -110,6 +111,9 @@ const Index: React.FC = () => {
             discountType: (product as any).discount_type || 'amount',
             saleEndTime: isOnSale ? saleEndTime : null,
             totalStock: totalStock,
+            deliveryCharge: Number((product as any).delivery_charge) || 0,
+            freeDeliveryQuantity: Number((product as any).free_delivery_quantity) || 0,
+            wholesaleTiers: (tiersRes.data || []).map((t: any) => ({ minQuantity: t.min_quantity, price: Number(t.price) })),
           };
         })
       );
