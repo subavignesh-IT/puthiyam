@@ -1,21 +1,62 @@
-# Plan
+# Per-product Delivery, Wholesale Tiers & UPI Cleanup
 
-## 1. Remove UPI app selector buttons
-- In `src/components/QRCodePayment.tsx`, remove the `UPIAppSelector` usage and its import. Replace it with a single "Pay with UPI App" button that opens the standard `upi://pay?...` URL — the device will prompt the user to choose / use their default UPI app (GPay, PhonePe, Paytm, BHIM, etc.).
-- Delete `src/components/UPIAppSelector.tsx` (no longer used anywhere else — will verify with a quick grep before deletion; if referenced elsewhere, keep file but stop rendering it).
+## 1. Database changes (one migration)
 
-## 2. Bill download button on Cart for 5 minutes after order confirm
-- After a successful order in `src/components/CheckoutForm.tsx`, store the last confirmed order info in `localStorage` under a key like `lastOrder` with `{ orderId, items, totals, customer, timestamp }`.
-- In `src/pages/Cart.tsx`, read `lastOrder` on mount. If `Date.now() - timestamp < 5 * 60 * 1000`, render a "Download Bill" section above the cart content with:
-  - Order ID label
-  - A countdown showing remaining minutes/seconds
-  - A "Download Bill Image" button that renders the existing `OrderBillImage` / `CheckoutBillImage` component off-screen, converts to PNG via `html2canvas` (already used in the bill flow), and triggers a download.
-  - Auto-hides once the 5-minute window elapses (via a `setInterval` updating remaining time; clears the localStorage entry when expired).
-- Works whether the cart is empty or full (shown at the top of the page).
+Add to `public.products`:
+- `delivery_charge numeric default 0` — delivery charge per product (per line item, not per unit).
+- `free_delivery_quantity integer default 0` — when cart quantity of that product is ≥ this number, its delivery charge is waived (0 = always charge).
 
-## Technical notes
-- No backend / schema changes.
-- Files to edit: `src/components/QRCodePayment.tsx`, `src/components/CheckoutForm.tsx`, `src/pages/Cart.tsx`.
-- File to delete (if unused elsewhere): `src/components/UPIAppSelector.tsx`.
-- Reuse the existing bill image component already used for WhatsApp sharing — no new rendering logic.
-- WhatsApp auto-share flow stays as-is.
+New table `public.product_wholesale_tiers`:
+- `id`, `product_id` (FK products, on delete cascade), `min_quantity` (int), `price` (numeric), `created_at`.
+- Unique (product_id, min_quantity).
+- GRANT select to anon + authenticated (public read like products).
+- GRANT insert/update/delete to authenticated; RLS policy: only the product's seller (existing role check pattern) can modify.
+
+## 2. Admin / Seller "Add / Edit Product" form (`src/pages/SellerDashboard.tsx`)
+
+Add to the product editor:
+- "Delivery charge (₹)" number input.
+- "Free delivery when quantity ≥" number input (0 = always charged).
+- "Wholesale tiers" repeater: rows of `min_quantity` + `price`, with Add/Remove buttons. Saved to `product_wholesale_tiers` on submit (delete existing rows then insert).
+
+## 3. Product type + fetching (`src/types/product.ts`, product loaders)
+
+Extend `Product` and `CartItem`:
+- `deliveryCharge?: number`
+- `freeDeliveryQuantity?: number`
+- `wholesaleTiers?: { minQuantity: number; price: number }[]`
+
+Map these from DB everywhere products are loaded (Index, ProductDetail, Trending, etc.).
+
+## 4. Cart pricing & shipping logic (`src/context/CartContext.tsx`)
+
+- Add helper `getEffectivePrice(item)`:
+  - Start from variant price (or base price).
+  - If `wholesaleTiers` exist, pick the tier with the highest `minQuantity ≤ item.quantity`; use that price instead.
+- `getTotal()` uses `getEffectivePrice`.
+- Replace `getShippingCost()`:
+  - Sum each item's `deliveryCharge ?? 0`, **skipping** items whose `quantity ≥ freeDeliveryQuantity` (when threshold > 0).
+  - Keep the existing global rule as a fallback only if no product has its own delivery charge (so current behaviour isn't broken for old products).
+- Expose `getItemEffectivePrice` and `getItemDeliveryCharge` for the cart UI to show "Wholesale price applied" and "Free delivery unlocked" badges.
+
+## 5. Cart UI (`src/pages/Cart.tsx`, `src/components/CartItem.tsx`)
+
+- Show per-line delivery charge under each item; strike it through and show "Free delivery (qty ≥ N)" when threshold met.
+- Show "Wholesale price ₹X (≥N qty)" hint when a tier is active, and a "+M more for next tier" hint when close.
+- Order summary lists Subtotal, Delivery (sum of per-item charges), Total.
+
+## 6. Checkout / order persistence (`src/components/CheckoutForm.tsx`)
+
+- Use cart's new total + delivery sum (already through `getTotal` + `getShippingCost`); no schema change to `orders` (it already stores totals).
+- Bill image shows the same breakdown.
+
+## 7. UPI button cleanup (`src/components/QRCodePayment.tsx`)
+
+- Button label "Pay ₹X with GPay (Secure)" → **"Pay ₹X with UPI (Secure)"**.
+- Button label "Pay ₹X with UPI App" → **"Pay ₹X with UPI"**.
+- Remove the helper text listing app names ("GPay, PhonePe, Paytm, BHIM, etc.") and replace with "Opens your default UPI app".
+
+## Out of scope
+
+- No changes to payments backend, order schema, or UPI deep-link URL itself.
+- Pre-booking / out-of-stock rules unchanged.
