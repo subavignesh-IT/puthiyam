@@ -8,6 +8,7 @@ import CartItem from '@/components/CartItem';
 import CheckoutForm from '@/components/CheckoutForm';
 import StampCard from '@/components/StampCard';
 import BottomNav from '@/components/BottomNav';
+import LastOrderBillBanner from '@/components/LastOrderBillBanner';
 import { Button } from '@/components/ui/button';
 
 const Cart: React.FC = () => {
@@ -23,7 +24,9 @@ const Cart: React.FC = () => {
         </div>
 
         <h1 className="font-serif text-3xl font-bold mb-6">Your Cart</h1>
-        
+
+        <LastOrderBillBanner />
+
         <div className="mb-8">
           <StampCard />
         </div>
