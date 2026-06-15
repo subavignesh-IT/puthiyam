@@ -234,6 +234,9 @@ const CheckoutForm: React.FC = () => {
     // Auto-open WhatsApp share so the bill is ready to send to seller
     await shareImageToWhatsApp(true);
 
+    // Persist last order for 5-min download banner on cart
+    persistLastOrder(imageUrl);
+
     // Clear cart and loyalty coupon
     localStorage.removeItem('loyaltyCoupon');
     clearCart();
@@ -266,6 +269,9 @@ const CheckoutForm: React.FC = () => {
 
     // Auto-open WhatsApp share so the bill is ready to send to seller
     await shareImageToWhatsApp(true);
+
+    // Persist last order for 5-min download banner on cart
+    persistLastOrder(imageUrl);
 
     // Clear cart and loyalty coupon
     localStorage.removeItem('loyaltyCoupon');
