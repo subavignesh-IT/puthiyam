@@ -2204,7 +2204,7 @@ const SellerDashboard: React.FC = () => {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => {
+                              onClick={async () => {
                                 setEditingProduct(product);
                                 setActiveTab('add');
                                 // Pre-fill form with product data
@@ -2227,6 +2227,14 @@ const SellerDashboard: React.FC = () => {
                                   isDefault: v.is_default || false,
                                   stockQuantity: v.stock_quantity,
                                 })));
+                                setDeliveryCharge(String((product as any).delivery_charge ?? 0));
+                                setFreeDeliveryQuantity(String((product as any).free_delivery_quantity ?? 0));
+                                const { data: tiersData } = await supabase
+                                  .from('product_wholesale_tiers')
+                                  .select('min_quantity, price')
+                                  .eq('product_id', product.id)
+                                  .order('min_quantity');
+                                setWholesaleTiers((tiersData || []).map((t: any) => ({ minQuantity: t.min_quantity, price: Number(t.price) })));
                               }}
                             >
                               <Edit className="w-4 h-4 mr-1" />
