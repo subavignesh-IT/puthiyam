@@ -483,8 +483,8 @@ const CheckoutForm: React.FC = () => {
                   <span className="font-medium">Home Delivery</span>
                   <span className="block text-sm text-muted-foreground">Delivered to your address</span>
                 </Label>
-                <span className={subtotal >= 200 ? 'text-secondary font-medium' : 'text-muted-foreground'}>
-                  {subtotal >= 200 ? 'FREE' : '₹100'}
+                <span className={homeDeliveryPreview === 0 ? 'text-secondary font-medium' : 'text-muted-foreground'}>
+                  {homeDeliveryPreview === 0 ? 'FREE' : `₹${homeDeliveryPreview}`}
                 </span>
               </div>
             </RadioGroup>
