@@ -172,7 +172,6 @@ const SellerDashboard: React.FC = () => {
   const [productName, setProductName] = useState('');
   const [productDescription, setProductDescription] = useState('');
   const [productCategory, setProductCategory] = useState('');
-  const [basePrice, setBasePrice] = useState('');
   const [measurementUnit, setMeasurementUnit] = useState('g');
   const [packingType, setPackingType] = useState('pouch');
   const [isOnSale, setIsOnSale] = useState(false);
