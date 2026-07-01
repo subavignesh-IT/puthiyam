@@ -999,10 +999,13 @@ const SellerDashboard: React.FC = () => {
   };
 
   const handleAddProduct = async () => {
-    if (!productName || !productCategory || !basePrice) {
+    const computedBasePrice = variants.length > 0
+      ? Math.min(...variants.map(v => Number(v.price) || 0).filter(p => p > 0))
+      : 0;
+    if (!productName || !productCategory || !computedBasePrice || !isFinite(computedBasePrice)) {
       toast({
         title: "Missing Fields",
-        description: "Please fill in all required fields",
+        description: "Please fill in name, category and at least one variant with a price",
         variant: "destructive"
       });
       return;
@@ -1019,7 +1022,7 @@ const SellerDashboard: React.FC = () => {
           name: productName,
           description: productDescription,
           category: productCategory,
-          base_price: parseFloat(basePrice),
+          base_price: computedBasePrice,
           measurement_unit: measurementUnit,
           packing_type: packingType,
           is_on_sale: isOnSale,
@@ -1041,7 +1044,7 @@ const SellerDashboard: React.FC = () => {
         price: v.price,
         is_default: v.isDefault,
         stock_quantity: v.stockQuantity,
-        wholesale_price: v.wholesalePrice || null,
+        wholesale_price: null,
       }));
 
       const { error: variantError } = await supabase
