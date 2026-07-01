@@ -56,6 +56,7 @@ const CheckoutForm: React.FC = () => {
   const subtotal = getTotal();
   const shippingCost = deliveryType === 'shipping' ? getShippingCost() : 0;
   const grandTotal = subtotal + shippingCost;
+  const homeDeliveryPreview = getShippingCost();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData(prev => ({
@@ -88,7 +89,7 @@ const CheckoutForm: React.FC = () => {
 
       const orderData: Record<string, any> = {
         user_id: user.id,
-        customer_name: formData.name,
+        customer_name: (formData.name && formData.name.trim()) || 'Customer',
         customer_phone: formData.phone,
         customer_address: deliveryType === 'shipping' ? formData.address : null,
         delivery_type: deliveryType,
