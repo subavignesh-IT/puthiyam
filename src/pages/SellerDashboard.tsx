@@ -2215,7 +2215,6 @@ const SellerDashboard: React.FC = () => {
                                 setProductName(product.name);
                                 setProductDescription(product.description || '');
                                 setProductCategory(product.category);
-                                setBasePrice(product.base_price.toString());
                                 setMeasurementUnit(product.measurement_unit);
                                 setPackingType(product.packing_type || 'pouch');
                                 setIsOnSale(product.is_on_sale);
