@@ -2449,15 +2449,6 @@ const SellerDashboard: React.FC = () => {
                         />
                       </div>
                       <div className="flex-1 min-w-[100px]">
-                        <Label className="text-xs">Wholesale (₹)</Label>
-                        <Input
-                          type="number"
-                          value={variant.wholesalePrice || ''}
-                          onChange={(e) => updateVariant(index, 'wholesalePrice', parseFloat(e.target.value) || 0)}
-                          placeholder="0"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-[100px]">
                         <Label className="text-xs">Stock Qty</Label>
                         <Input
                           type="number"
