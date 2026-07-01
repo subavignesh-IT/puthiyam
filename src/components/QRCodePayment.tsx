@@ -34,7 +34,8 @@ const QRCodePayment: React.FC<QRCodePaymentProps> = ({ total, onPaymentComplete,
   const [timeRemaining, setTimeRemaining] = useState(600); // 10 minutes in seconds
   const [copied, setCopied] = useState(false);
   const [payerUpi, setPayerUpi] = useState('');
-  const [paymentRequested, setPaymentRequested] = useState(false);
+  const [collectLoading, setCollectLoading] = useState(false);
+  const [collectTxnId, setCollectTxnId] = useState<string | null>(null);
   const [upiAppOpened, setUpiAppOpened] = useState(false);
 
   // PhonePe / GPay backend flow state
@@ -85,7 +86,7 @@ const QRCodePayment: React.FC<QRCodePaymentProps> = ({ total, onPaymentComplete,
     setTimeout(() => setCopied(false), 3000);
   };
 
-  const handleSendPaymentRequest = () => {
+  const handleSendPaymentRequest = async () => {
     if (!payerUpi.trim() || !payerUpi.includes('@')) {
       toast({
         title: "Invalid UPI Address",
@@ -94,17 +95,40 @@ const QRCodePayment: React.FC<QRCodePaymentProps> = ({ total, onPaymentComplete,
       });
       return;
     }
-
-    // In a real implementation, this would call a backend API to send collect request
-    setPaymentRequested(true);
-    toast({
-      title: "Payment Request Sent!",
-      description: `A payment request for ₹${total} has been sent to ${payerUpi}. Please approve it in your UPI app.`,
-      duration: 8000,
-    });
-    
-    // Start listening for return after user opens their UPI app
-    setUpiAppOpened(true);
+    if (collectLoading || gpayPolling) return;
+    setCollectLoading(true);
+    try {
+      const orderRef = `ORD${Date.now()}`;
+      const { data, error } = await supabase.functions.invoke('phonepe-collect', {
+        body: {
+          amount: total,
+          orderId: orderRef,
+          userId: user?.id || 'guest',
+          payerVpa: payerUpi.trim(),
+        },
+      });
+      if (error) throw error;
+      if (!data?.merchantTransactionId) {
+        throw new Error(data?.error || 'Failed to send payment request');
+      }
+      setCollectTxnId(data.merchantTransactionId);
+      setGpayTxnId(data.merchantTransactionId);
+      toast({
+        title: 'Payment Request Sent!',
+        description: `A ₹${total} request is now in ${payerUpi}'s UPI app. Approve it to confirm your order.`,
+        duration: 9000,
+      });
+      pollStatus(data.merchantTransactionId);
+    } catch (e: any) {
+      console.error(e);
+      toast({
+        title: 'Could not send request',
+        description: e?.message || 'Try again in a moment.',
+        variant: 'destructive',
+      });
+    } finally {
+      setCollectLoading(false);
+    }
   };
 
   const stopPolling = () => {
