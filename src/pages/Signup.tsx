@@ -33,10 +33,10 @@ const Signup: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.fullName || !formData.email || !formData.phone || !formData.password) {
+    if (!formData.email || !formData.phone || !formData.password) {
       toast({
         title: "Missing Fields",
-        description: "Please fill in all fields",
+        description: "Please fill in email, phone and password",
         variant: "destructive"
       });
       return;
@@ -61,7 +61,8 @@ const Signup: React.FC = () => {
     }
 
     setLoading(true);
-    const { error } = await signUp(formData.email, formData.password, formData.fullName, formData.phone);
+    const nameToSave = (formData.fullName && formData.fullName.trim()) || 'Customer';
+    const { error } = await signUp(formData.email, formData.password, nameToSave, formData.phone);
     setLoading(false);
 
     if (error) {
