@@ -358,18 +358,20 @@ const QRCodePayment: React.FC<QRCodePaymentProps> = ({ total, onPaymentComplete,
                 value={payerUpi}
                 onChange={(e) => setPayerUpi(e.target.value)}
                 placeholder="e.g. yourname@upi"
-                disabled={paymentRequested}
+                disabled={!!collectTxnId || collectLoading}
               />
               <Button 
                 onClick={handleSendPaymentRequest}
-                disabled={paymentRequested || !payerUpi.trim()}
+                disabled={!!collectTxnId || collectLoading || !payerUpi.trim()}
                 variant="outline"
               >
-                {paymentRequested ? 'Sent!' : 'Request'}
+                {collectLoading ? (
+                  <><Loader2 className="w-4 h-4 mr-1 animate-spin" /> Sending…</>
+                ) : collectTxnId ? 'Sent!' : 'Request'}
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              We'll send a payment request for ₹{total} to your UPI app
+              A live UPI collect request will be pushed to your UPI app for ₹{total}.
             </p>
           </div>
 
