@@ -2336,17 +2336,10 @@ const SellerDashboard: React.FC = () => {
                   />
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="basePrice">Base Price (₹) *</Label>
-                    <Input
-                      id="basePrice"
-                      type="number"
-                      value={basePrice}
-                      onChange={(e) => setBasePrice(e.target.value)}
-                      placeholder="e.g. 100"
-                    />
-                  </div>
+                <p className="text-xs text-muted-foreground -mt-2">
+                  Base price is auto-calculated from the lowest variant price you add below.
+                </p>
+                <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label>Measurement Unit</Label>
                     <Select value={measurementUnit} onValueChange={setMeasurementUnit}>
