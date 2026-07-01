@@ -6,6 +6,8 @@
 
 @layer base {
   :root {
+    /* Global font scale — nudge up ~6% for better readability */
+    font-size: 17px;
     --background: 30 25% 97%;
     --foreground: 20 20% 15%;
 
