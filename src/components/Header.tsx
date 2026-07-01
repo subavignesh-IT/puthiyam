@@ -81,7 +81,7 @@ const Header: React.FC<HeaderProps> = ({ onSearch, searchQuery = '' }) => {
 
   const LogoButton = () => (
     <div className="flex items-center gap-2">
-      <div className="w-10 h-10 gradient-hero rounded-full flex items-center justify-center shadow-soft hover:shadow-elevated transition-all duration-300 hover:scale-105">
+      <div className="w-10 h-10 gradient-hero rounded-full flex items-center justify-center shadow-soft hover:shadow-elevated transition-all duration-300 hover:scale-110 animate-float-slow">
         <span className="text-primary-foreground font-serif font-bold text-xl">P</span>
       </div>
       <span className="font-serif font-bold text-lg text-foreground hidden sm:block">

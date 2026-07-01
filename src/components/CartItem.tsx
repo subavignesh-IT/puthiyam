@@ -26,7 +26,7 @@ const CartItem: React.FC<CartItemProps> = ({ item }) => {
   const deliveryWaived = deliveryCharge > 0 && liveDelivery === 0;
 
   return (
-    <div className="flex gap-4 p-4 bg-card rounded-lg shadow-soft animate-fade-in">
+    <div className="flex gap-4 p-4 bg-card rounded-lg shadow-soft animate-slide-up-fade hover-lift">
       <img
         src={item.image}
         alt={item.name}

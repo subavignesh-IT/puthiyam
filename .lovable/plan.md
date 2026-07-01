@@ -1,62 +1,57 @@
-# Per-product Delivery, Wholesale Tiers & UPI Cleanup
+# Plan: Multiple Fixes & Enhancements
 
-## 1. Database changes (one migration)
+## 1. Seller product form — remove fields
+- Remove **Base Price** input entirely from Add/Edit product form in `SellerDashboard.tsx`
+- Remove the single **Wholesale price** field (keep multi-tier wholesale intact)
+- Save `base_price` as the lowest variant price automatically (DB column stays; derived from variants) so existing schema/orders keep working
 
-Add to `public.products`:
-- `delivery_charge numeric default 0` — delivery charge per product (per line item, not per unit).
-- `free_delivery_quantity integer default 0` — when cart quantity of that product is ≥ this number, its delivery charge is waived (0 = always charge).
+## 2. UPI payment screen (`QRCodePayment.tsx`)
+- Remove any remaining UPI app names / labels — keep only two buttons:
+  - **Pay with UPI App** (opens device default UPI app via `upi://` intent)
+  - **Show QR Code** (renders QR)
+- For the "Pay to UPI ID" flow, wire a real **UPI Collect request** via the existing PhonePe edge function (`phonepe-initiate` already deployed). New button "Request payment to my UPI ID" calls a new `phonepe-collect` edge function that hits PhonePe's `/pg/v1/pay` with `PAY_PAGE` → `UPI_COLLECT` instrument (payer VPA sent to backend). Success → payer receives push notification in their UPI app. Frontend polls existing `phonepe-status` and only confirms order on `PAYMENT_SUCCESS`.
 
-New table `public.product_wholesale_tiers`:
-- `id`, `product_id` (FK products, on delete cascade), `min_quantity` (int), `price` (numeric), `created_at`.
-- Unique (product_id, min_quantity).
-- GRANT select to anon + authenticated (public read like products).
-- GRANT insert/update/delete to authenticated; RLS policy: only the product's seller (existing role check pattern) can modify.
+## 3. Home delivery button
+- Update the delivery option label on `CheckoutForm.tsx` to show the **live courier / delivery charge** computed from cart items (sum of each product's `deliveryCharge`, waived per-product when `freeDeliveryQuantity` is reached). E.g. "Home Delivery — ₹80".
 
-## 2. Admin / Seller "Add / Edit Product" form (`src/pages/SellerDashboard.tsx`)
+## 4. Global font size bump
+- In `src/index.css`, increase root `html { font-size }` from default 16px → **17px** (≈6% bump across the app) so it scales all `rem`-based sizes uniformly without touching individual components.
 
-Add to the product editor:
-- "Delivery charge (₹)" number input.
-- "Free delivery when quantity ≥" number input (0 = always charged).
-- "Wholesale tiers" repeater: rows of `min_quantity` + `price`, with Add/Remove buttons. Saved to `product_wholesale_tiers` on submit (delete existing rows then insert).
+## 5. Default customer name
+- In checkout + signup, when the name field is empty, save/display **"Customer"** as the default (not "online payment", since that's confusing as a person name).
+- Applied in `CheckoutForm.tsx` order insert and `Signup.tsx` profile creation.
 
-## 3. Product type + fetching (`src/types/product.ts`, product loaders)
+## 6. Account actions
+- Delete auth user **kathaiahkarthik@gmail.com** via existing `delete-user` edge function (removes profile, roles, loyalty, auth record) so they can freshly sign up as a normal customer.
+- Add **seller role** for the current logged-in user (the "me" who's asking). Will use `supabase--insert` to insert a `user_roles` row with `role = 'seller'` for your `auth.uid()`. Please confirm which email is "me" in the next turn — I'll ask before running.
 
-Extend `Product` and `CartItem`:
-- `deliveryCharge?: number`
-- `freeDeliveryQuantity?: number`
-- `wholesaleTiers?: { minQuantity: number; price: number }[]`
+## 7. index.html
+- Add `<meta name="google-site-verification" content="Nh5hwutvKtEB84fZqN0PTUvyl2Yfp1-BcMarfMmmXF0" />` inside `<head>` (line 9 area) for Google Search Console verification.
 
-Map these from DB everywhere products are loaded (Index, ProductDetail, Trending, etc.).
+## 8. Extra animations across frontend
+- Add new keyframes in `tailwind.config.ts` + `index.css`: `float-slow`, `shimmer-bg`, `pop-in`, `slide-up-fade`, `gradient-shift`, `bounce-soft`
+- Apply subtly across:
+  - `ProductCard` — `pop-in` on mount + softer hover-lift
+  - `Header` — logo `float-slow`
+  - Buttons (primary) — subtle `shimmer-bg` on hover
+  - Cart items — `slide-up-fade` on add
+  - Trending / hero — animated `gradient-shift` background
+  - Dialogs / popups — enhanced `scale-in` with easing curve
 
-## 4. Cart pricing & shipping logic (`src/context/CartContext.tsx`)
+## Files to change
+- `src/pages/SellerDashboard.tsx` (remove base price + wholesale single field)
+- `src/components/QRCodePayment.tsx` (button-only UPI + collect flow)
+- `supabase/functions/phonepe-collect/index.ts` (NEW — UPI collect API)
+- `src/components/CheckoutForm.tsx` (delivery label + default name)
+- `src/pages/Signup.tsx` (default name = "Customer")
+- `src/index.css` (root font-size + new keyframes)
+- `tailwind.config.ts` (register new animations)
+- `src/components/ProductCard.tsx`, `Header.tsx`, `CartItem.tsx` (apply animations)
+- `index.html` (Google verification meta)
 
-- Add helper `getEffectivePrice(item)`:
-  - Start from variant price (or base price).
-  - If `wholesaleTiers` exist, pick the tier with the highest `minQuantity ≤ item.quantity`; use that price instead.
-- `getTotal()` uses `getEffectivePrice`.
-- Replace `getShippingCost()`:
-  - Sum each item's `deliveryCharge ?? 0`, **skipping** items whose `quantity ≥ freeDeliveryQuantity` (when threshold > 0).
-  - Keep the existing global rule as a fallback only if no product has its own delivery charge (so current behaviour isn't broken for old products).
-- Expose `getItemEffectivePrice` and `getItemDeliveryCharge` for the cart UI to show "Wholesale price applied" and "Free delivery unlocked" badges.
+## Data operations (after approval)
+- Call `delete-user` edge fn for `kathaiahkarthik@gmail.com`
+- Insert `seller` role for current user (need to confirm your email)
 
-## 5. Cart UI (`src/pages/Cart.tsx`, `src/components/CartItem.tsx`)
-
-- Show per-line delivery charge under each item; strike it through and show "Free delivery (qty ≥ N)" when threshold met.
-- Show "Wholesale price ₹X (≥N qty)" hint when a tier is active, and a "+M more for next tier" hint when close.
-- Order summary lists Subtotal, Delivery (sum of per-item charges), Total.
-
-## 6. Checkout / order persistence (`src/components/CheckoutForm.tsx`)
-
-- Use cart's new total + delivery sum (already through `getTotal` + `getShippingCost`); no schema change to `orders` (it already stores totals).
-- Bill image shows the same breakdown.
-
-## 7. UPI button cleanup (`src/components/QRCodePayment.tsx`)
-
-- Button label "Pay ₹X with GPay (Secure)" → **"Pay ₹X with UPI (Secure)"**.
-- Button label "Pay ₹X with UPI App" → **"Pay ₹X with UPI"**.
-- Remove the helper text listing app names ("GPay, PhonePe, Paytm, BHIM, etc.") and replace with "Opens your default UPI app".
-
-## Out of scope
-
-- No changes to payments backend, order schema, or UPI deep-link URL itself.
-- Pre-booking / out-of-stock rules unchanged.
+## Follow-up question
+Before I run the seller-role insert, **please tell me which email is "me" (the account that should get seller role)** — is it the same account currently logged into the preview, or a different one?

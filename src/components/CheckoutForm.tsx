@@ -56,6 +56,7 @@ const CheckoutForm: React.FC = () => {
   const subtotal = getTotal();
   const shippingCost = deliveryType === 'shipping' ? getShippingCost() : 0;
   const grandTotal = subtotal + shippingCost;
+  const homeDeliveryPreview = getShippingCost();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData(prev => ({
@@ -88,7 +89,7 @@ const CheckoutForm: React.FC = () => {
 
       const orderData: Record<string, any> = {
         user_id: user.id,
-        customer_name: formData.name,
+        customer_name: (formData.name && formData.name.trim()) || 'Customer',
         customer_phone: formData.phone,
         customer_address: deliveryType === 'shipping' ? formData.address : null,
         delivery_type: deliveryType,
@@ -482,8 +483,8 @@ const CheckoutForm: React.FC = () => {
                   <span className="font-medium">Home Delivery</span>
                   <span className="block text-sm text-muted-foreground">Delivered to your address</span>
                 </Label>
-                <span className={subtotal >= 200 ? 'text-secondary font-medium' : 'text-muted-foreground'}>
-                  {subtotal >= 200 ? 'FREE' : '₹100'}
+                <span className={homeDeliveryPreview === 0 ? 'text-secondary font-medium' : 'text-muted-foreground'}>
+                  {homeDeliveryPreview === 0 ? 'FREE' : `₹${homeDeliveryPreview}`}
                 </span>
               </div>
             </RadioGroup>

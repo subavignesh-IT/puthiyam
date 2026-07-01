@@ -172,7 +172,6 @@ const SellerDashboard: React.FC = () => {
   const [productName, setProductName] = useState('');
   const [productDescription, setProductDescription] = useState('');
   const [productCategory, setProductCategory] = useState('');
-  const [basePrice, setBasePrice] = useState('');
   const [measurementUnit, setMeasurementUnit] = useState('g');
   const [packingType, setPackingType] = useState('pouch');
   const [isOnSale, setIsOnSale] = useState(false);
@@ -1000,10 +999,13 @@ const SellerDashboard: React.FC = () => {
   };
 
   const handleAddProduct = async () => {
-    if (!productName || !productCategory || !basePrice) {
+    const computedBasePrice = variants.length > 0
+      ? Math.min(...variants.map(v => Number(v.price) || 0).filter(p => p > 0))
+      : 0;
+    if (!productName || !productCategory || !computedBasePrice || !isFinite(computedBasePrice)) {
       toast({
         title: "Missing Fields",
-        description: "Please fill in all required fields",
+        description: "Please fill in name, category and at least one variant with a price",
         variant: "destructive"
       });
       return;
@@ -1020,7 +1022,7 @@ const SellerDashboard: React.FC = () => {
           name: productName,
           description: productDescription,
           category: productCategory,
-          base_price: parseFloat(basePrice),
+          base_price: computedBasePrice,
           measurement_unit: measurementUnit,
           packing_type: packingType,
           is_on_sale: isOnSale,
@@ -1042,7 +1044,7 @@ const SellerDashboard: React.FC = () => {
         price: v.price,
         is_default: v.isDefault,
         stock_quantity: v.stockQuantity,
-        wholesale_price: v.wholesalePrice || null,
+        wholesale_price: null,
       }));
 
       const { error: variantError } = await supabase
@@ -1110,7 +1112,6 @@ const SellerDashboard: React.FC = () => {
     setProductName('');
     setProductDescription('');
     setProductCategory('');
-    setBasePrice('');
     setMeasurementUnit('g');
     setPackingType('pouch');
     setIsOnSale(false);
@@ -1127,10 +1128,13 @@ const SellerDashboard: React.FC = () => {
   };
 
   const handleUpdateProduct = async () => {
-    if (!editingProduct || !productName || !productCategory || !basePrice) {
+    const computedBasePrice = variants.length > 0
+      ? Math.min(...variants.map(v => Number(v.price) || 0).filter(p => p > 0))
+      : 0;
+    if (!editingProduct || !productName || !productCategory || !computedBasePrice || !isFinite(computedBasePrice)) {
       toast({
         title: "Missing Fields",
-        description: "Please fill in all required fields",
+        description: "Please fill in name, category and at least one variant with a price",
         variant: "destructive"
       });
       return;
@@ -1146,7 +1150,7 @@ const SellerDashboard: React.FC = () => {
           name: productName,
           description: productDescription,
           category: productCategory,
-          base_price: parseFloat(basePrice),
+          base_price: computedBasePrice,
           measurement_unit: measurementUnit,
           packing_type: packingType,
           is_on_sale: isOnSale,
@@ -1169,7 +1173,7 @@ const SellerDashboard: React.FC = () => {
         price: v.price,
         is_default: v.isDefault,
         stock_quantity: v.stockQuantity,
-        wholesale_price: v.wholesalePrice || null,
+        wholesale_price: null,
       }));
 
       const { error: variantError } = await supabase
@@ -2211,7 +2215,6 @@ const SellerDashboard: React.FC = () => {
                                 setProductName(product.name);
                                 setProductDescription(product.description || '');
                                 setProductCategory(product.category);
-                                setBasePrice(product.base_price.toString());
                                 setMeasurementUnit(product.measurement_unit);
                                 setPackingType(product.packing_type || 'pouch');
                                 setIsOnSale(product.is_on_sale);
@@ -2332,17 +2335,10 @@ const SellerDashboard: React.FC = () => {
                   />
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="basePrice">Base Price (₹) *</Label>
-                    <Input
-                      id="basePrice"
-                      type="number"
-                      value={basePrice}
-                      onChange={(e) => setBasePrice(e.target.value)}
-                      placeholder="e.g. 100"
-                    />
-                  </div>
+                <p className="text-xs text-muted-foreground -mt-2">
+                  Base price is auto-calculated from the lowest variant price you add below.
+                </p>
+                <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label>Measurement Unit</Label>
                     <Select value={measurementUnit} onValueChange={setMeasurementUnit}>
@@ -2450,15 +2446,6 @@ const SellerDashboard: React.FC = () => {
                           value={variant.price}
                           onChange={(e) => updateVariant(index, 'price', parseFloat(e.target.value))}
                           placeholder="50"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-[100px]">
-                        <Label className="text-xs">Wholesale (₹)</Label>
-                        <Input
-                          type="number"
-                          value={variant.wholesalePrice || ''}
-                          onChange={(e) => updateVariant(index, 'wholesalePrice', parseFloat(e.target.value) || 0)}
-                          placeholder="0"
                         />
                       </div>
                       <div className="flex-1 min-w-[100px]">
