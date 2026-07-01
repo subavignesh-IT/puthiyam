@@ -48,7 +48,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
   return (
     <Card 
-      className="group overflow-hidden border-0 shadow-soft hover:shadow-elevated transition-all duration-300 animate-fade-in cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+      className="group overflow-hidden border-0 shadow-soft hover:shadow-elevated transition-all duration-300 animate-pop-in hover-lift cursor-pointer active:scale-[0.98]"
       onClick={handleCardClick}
     >
       <div className="relative aspect-square overflow-hidden bg-muted">
