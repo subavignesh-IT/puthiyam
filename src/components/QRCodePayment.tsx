@@ -86,46 +86,71 @@ const QRCodePayment: React.FC<QRCodePaymentProps> = ({ total, onPaymentComplete,
     setTimeout(() => setCopied(false), 3000);
   };
 
+  const VPA_REGEX = /^[a-zA-Z0-9._-]{2,256}@[a-zA-Z][a-zA-Z0-9.-]{1,63}$/;
+
   const handleSendPaymentRequest = async () => {
-    if (!payerUpi.trim() || !payerUpi.includes('@')) {
+    const vpa = payerUpi.trim().toLowerCase();
+    if (!VPA_REGEX.test(vpa)) {
       toast({
-        title: "Invalid UPI Address",
-        description: "Please enter a valid UPI address (e.g., name@upi)",
-        variant: "destructive"
+        title: 'Invalid UPI ID',
+        description: 'Enter a valid UPI ID like yourname@okhdfcbank or 9876543210@ybl.',
+        variant: 'destructive',
       });
       return;
     }
     if (collectLoading || gpayPolling) return;
     setCollectLoading(true);
-    try {
-      const orderRef = `ORD${Date.now()}`;
+    const orderRef = `ORD${Date.now()}`;
+
+    // Retry the collect request once on transient network failures
+    const attempt = async () => {
       const { data, error } = await supabase.functions.invoke('phonepe-collect', {
-        body: {
-          amount: total,
-          orderId: orderRef,
-          userId: user?.id || 'guest',
-          payerVpa: payerUpi.trim(),
-        },
+        body: { amount: total, orderId: orderRef, userId: user?.id || 'guest', payerVpa: vpa },
       });
-      if (error) throw error;
+      if (error) {
+        // supabase.functions.invoke returns error with .context (a Response)
+        let serverMsg: string | undefined;
+        try {
+          const ctx: any = (error as any).context;
+          if (ctx && typeof ctx.json === 'function') {
+            const body = await ctx.json();
+            serverMsg = body?.error;
+          }
+        } catch { /* ignore */ }
+        throw new Error(serverMsg || error.message || 'Payment request failed');
+      }
       if (!data?.merchantTransactionId) {
-        throw new Error(data?.error || 'Failed to send payment request');
+        throw new Error(data?.error || 'Payment request failed');
+      }
+      return data;
+    };
+
+    try {
+      let data;
+      try {
+        data = await attempt();
+      } catch (firstErr: any) {
+        // Retry once for transient failures
+        console.warn('collect first attempt failed, retrying', firstErr);
+        await new Promise((r) => setTimeout(r, 1200));
+        data = await attempt();
       }
       setCollectTxnId(data.merchantTransactionId);
       setGpayTxnId(data.merchantTransactionId);
       toast({
-        title: 'Payment Request Sent!',
-        description: `A ₹${total} request is now in ${payerUpi}'s UPI app. Approve it to confirm your order.`,
+        title: 'Payment request sent',
+        description: `Approve the ₹${total} request in your UPI app (${vpa}) within 5 minutes.`,
         duration: 9000,
       });
       pollStatus(data.merchantTransactionId);
     } catch (e: any) {
-      console.error(e);
+      console.error('UPI collect failed:', e);
       toast({
         title: 'Could not send request',
-        description: e?.message || 'Try again in a moment.',
+        description: e?.message || 'Please check the UPI ID and try again.',
         variant: 'destructive',
       });
+      setCollectTxnId(null);
     } finally {
       setCollectLoading(false);
     }
@@ -147,30 +172,50 @@ const QRCodePayment: React.FC<QRCodePaymentProps> = ({ total, onPaymentComplete,
     setGpayPolling(true);
     const started = Date.now();
     const maxMs = 9 * 60 * 1000; // stop polling 1 min before timer expires
+    let consecutiveErrors = 0;
     const tick = async () => {
       if (pollStopRef.current) return;
+      let nextDelay = 3000;
       try {
         const { data, error } = await supabase.functions.invoke('phonepe-status', {
           body: { merchantTransactionId: txnId },
         });
         if (error) throw error;
+        consecutiveErrors = 0;
         if (data?.status === 'PAID') {
           stopPolling();
-          toast({ title: 'Payment Successful', description: `₹${total} received. Confirming your order...` });
+          toast({ title: 'Payment successful', description: `₹${total} received. Confirming your order…` });
           onPaymentComplete();
           return;
         }
         if (data?.status === 'FAILED') {
           stopPolling();
-          toast({ title: 'Payment Failed', description: 'Your payment did not go through. Try again.', variant: 'destructive' });
+          toast({
+            title: 'Payment failed',
+            description: data?.message || 'The payment was declined or expired. Please try again.',
+            variant: 'destructive',
+          });
           setGpayTxnId(null);
+          setCollectTxnId(null);
           return;
         }
       } catch (e) {
+        consecutiveErrors += 1;
         console.error('status poll failed', e);
+        // exponential-ish backoff, capped
+        nextDelay = Math.min(3000 * Math.pow(2, consecutiveErrors - 1), 15000);
+        if (consecutiveErrors >= 8) {
+          stopPolling();
+          toast({
+            title: 'Cannot verify payment',
+            description: 'We lost connection to the payment gateway. If you paid, contact support with your UPI reference.',
+            variant: 'destructive',
+          });
+          return;
+        }
       }
       if (Date.now() - started > maxMs) { stopPolling(); return; }
-      pollRef.current = window.setTimeout(tick, 3000);
+      pollRef.current = window.setTimeout(tick, nextDelay);
     };
     tick();
   };
