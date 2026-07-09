@@ -1,57 +1,31 @@
-# Plan: Multiple Fixes & Enhancements
+## Goal
 
-## 1. Seller product form — remove fields
-- Remove **Base Price** input entirely from Add/Edit product form in `SellerDashboard.tsx`
-- Remove the single **Wholesale price** field (keep multi-tier wholesale intact)
-- Save `base_price` as the lowest variant price automatically (DB column stays; derived from variants) so existing schema/orders keep working
+You use personal GPay (kathaiahkarthik@okhdfcbank), not a PhonePe merchant account. The "Secure PhonePe" button and the "send UPI request" input rely on a PhonePe merchant integration that will always fail with `KEY_NOT_CONFIGURED` for a non-merchant UPI ID. Remove that dead path and keep only the payment methods that actually work with a personal UPI ID.
 
-## 2. UPI payment screen (`QRCodePayment.tsx`)
-- Remove any remaining UPI app names / labels — keep only two buttons:
-  - **Pay with UPI App** (opens device default UPI app via `upi://` intent)
-  - **Show QR Code** (renders QR)
-- For the "Pay to UPI ID" flow, wire a real **UPI Collect request** via the existing PhonePe edge function (`phonepe-initiate` already deployed). New button "Request payment to my UPI ID" calls a new `phonepe-collect` edge function that hits PhonePe's `/pg/v1/pay` with `PAY_PAGE` → `UPI_COLLECT` instrument (payer VPA sent to backend). Success → payer receives push notification in their UPI app. Frontend polls existing `phonepe-status` and only confirms order on `PAYMENT_SUCCESS`.
+## What will change
 
-## 3. Home delivery button
-- Update the delivery option label on `CheckoutForm.tsx` to show the **live courier / delivery charge** computed from cart items (sum of each product's `deliveryCharge`, waived per-product when `freeDeliveryQuantity` is reached). E.g. "Home Delivery — ₹80".
+`src/components/QRCodePayment.tsx`
+- Remove the "Pay with UPI (Secure)" PhonePe button and its loading/polling UI.
+- Remove the "Your UPI Address" input + "Request" button (backend collect).
+- Remove all `phonepe-collect`, `phonepe-initiate`, `phonepe-status` calls and related state (`gpayLoading`, `gpayPolling`, `collectTxnId`, `pollStatus`, etc.).
+- Keep, in this order:
+  1. "Pay with UPI" button → opens default UPI app (GPay, PhonePe, Paytm, etc.) via `upi://` intent.
+  2. QR code scan block.
+  3. Copy UPI ID block.
+- Keep the 10-minute timer and auto-cancel behavior unchanged.
+- Add a small note: "After paying, tap 'I've Paid' to confirm your order." plus an "I've Paid" confirm button that calls `onPaymentComplete()` (manual confirmation, since there is no gateway to verify).
 
-## 4. Global font size bump
-- In `src/index.css`, increase root `html { font-size }` from default 16px → **17px** (≈6% bump across the app) so it scales all `rem`-based sizes uniformly without touching individual components.
+`supabase/functions/phonepe-collect/`, `phonepe-initiate/`, `phonepe-status/`
+- Delete these three edge functions — they are unreachable after the UI change.
 
-## 5. Default customer name
-- In checkout + signup, when the name field is empty, save/display **"Customer"** as the default (not "online payment", since that's confusing as a person name).
-- Applied in `CheckoutForm.tsx` order insert and `Signup.tsx` profile creation.
+Secrets (`PHONEPE_*`)
+- Leave for now; harmless. Can be cleaned up later via Project Settings.
 
-## 6. Account actions
-- Delete auth user **kathaiahkarthik@gmail.com** via existing `delete-user` edge function (removes profile, roles, loyalty, auth record) so they can freshly sign up as a normal customer.
-- Add **seller role** for the current logged-in user (the "me" who's asking). Will use `supabase--insert` to insert a `user_roles` row with `role = 'seller'` for your `auth.uid()`. Please confirm which email is "me" in the next turn — I'll ask before running.
+## What stays the same
 
-## 7. index.html
-- Add `<meta name="google-site-verification" content="Nh5hwutvKtEB84fZqN0PTUvyl2Yfp1-BcMarfMmmXF0" />` inside `<head>` (line 9 area) for Google Search Console verification.
+- Branding, layout, product catalog, cart, checkout form, WhatsApp bill sharing, COD flow, order records, 10-minute auto-cancel — all untouched.
+- The UPI intent button still launches GPay directly on mobile.
 
-## 8. Extra animations across frontend
-- Add new keyframes in `tailwind.config.ts` + `index.css`: `float-slow`, `shimmer-bg`, `pop-in`, `slide-up-fade`, `gradient-shift`, `bounce-soft`
-- Apply subtly across:
-  - `ProductCard` — `pop-in` on mount + softer hover-lift
-  - `Header` — logo `float-slow`
-  - Buttons (primary) — subtle `shimmer-bg` on hover
-  - Cart items — `slide-up-fade` on add
-  - Trending / hero — animated `gradient-shift` background
-  - Dialogs / popups — enhanced `scale-in` with easing curve
+## Trade-off you should know
 
-## Files to change
-- `src/pages/SellerDashboard.tsx` (remove base price + wholesale single field)
-- `src/components/QRCodePayment.tsx` (button-only UPI + collect flow)
-- `supabase/functions/phonepe-collect/index.ts` (NEW — UPI collect API)
-- `src/components/CheckoutForm.tsx` (delivery label + default name)
-- `src/pages/Signup.tsx` (default name = "Customer")
-- `src/index.css` (root font-size + new keyframes)
-- `tailwind.config.ts` (register new animations)
-- `src/components/ProductCard.tsx`, `Header.tsx`, `CartItem.tsx` (apply animations)
-- `index.html` (Google verification meta)
-
-## Data operations (after approval)
-- Call `delete-user` edge fn for `kathaiahkarthik@gmail.com`
-- Insert `seller` role for current user (need to confirm your email)
-
-## Follow-up question
-Before I run the seller-role insert, **please tell me which email is "me" (the account that should get seller role)** — is it the same account currently logged into the preview, or a different one?
+Without a gateway, order confirmation depends on the customer tapping "I've Paid." You verify the payment landed in your GPay app before shipping. If you later want automatic verification, sign up for Razorpay (free, works with any personal UPI as the receiving account) and I can wire it back in.
