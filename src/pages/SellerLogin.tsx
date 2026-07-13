@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
-import { Mail, Lock, Eye, EyeOff, Store, ArrowLeft } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Store } from 'lucide-react';
 
 const SellerLogin: React.FC = () => {
   const navigate = useNavigate();
@@ -17,9 +17,6 @@ const SellerLogin: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({ email: '', password: '' });
-  const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const [resetEmail, setResetEmail] = useState('');
-  const [resetLoading, setResetLoading] = useState(false);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -48,9 +45,22 @@ const SellerLogin: React.FC = () => {
       const { data: hasAdminRole } = await supabase.rpc('has_role', { _user_id: userData.user.id, _role: 'admin' as any });
       
       if (!hasSellerRole && !hasAdminRole) {
+        // Check for pending seller request
+        const { data: reqRow } = await supabase
+          .from('seller_requests' as any)
+          .select('status')
+          .eq('user_id', userData.user.id)
+          .maybeSingle();
+        const status = (reqRow as any)?.status;
         await supabase.auth.signOut();
         setLoading(false);
-        toast({ title: "Access Denied", description: "This login is for sellers only. Please use the buyer login.", variant: "destructive" });
+        if (status === 'pending') {
+          toast({ title: "Awaiting Approval", description: "Your seller request is pending admin approval.", variant: "destructive" });
+        } else if (status === 'rejected') {
+          toast({ title: "Request Rejected", description: "Your seller request was not approved. Contact support.", variant: "destructive" });
+        } else {
+          toast({ title: "Access Denied", description: "You are not a seller. Please register as a seller first.", variant: "destructive" });
+        }
         return;
       }
     }
@@ -73,59 +83,6 @@ const SellerLogin: React.FC = () => {
             <CardDescription>Access your seller dashboard</CardDescription>
           </CardHeader>
           <CardContent>
-            {showForgotPassword ? (
-              <div className="space-y-4">
-                <button
-                  type="button"
-                  onClick={() => setShowForgotPassword(false)}
-                  className="flex items-center gap-1 text-sm text-primary hover:underline"
-                >
-                  <ArrowLeft className="w-3 h-3" /> Back to login
-                </button>
-                <p className="text-sm text-muted-foreground">
-                  Enter your seller email and we'll send you a password reset link.
-                </p>
-                <div className="space-y-2">
-                  <Label htmlFor="reset-email">Email</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      id="reset-email"
-                      type="email"
-                      value={resetEmail}
-                      onChange={(e) => setResetEmail(e.target.value)}
-                      placeholder="seller@example.com"
-                      className="pl-10"
-                      required
-                    />
-                  </div>
-                </div>
-                <Button
-                  className="w-full gradient-hero text-primary-foreground"
-                  disabled={resetLoading}
-                  onClick={async () => {
-                    if (!resetEmail) {
-                      toast({ title: "Email Required", description: "Please enter your email", variant: "destructive" });
-                      return;
-                    }
-                    setResetLoading(true);
-                    const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-                      redirectTo: `${window.location.origin}/reset-password`,
-                    });
-                    setResetLoading(false);
-                    if (error) {
-                      toast({ title: "Error", description: error.message, variant: "destructive" });
-                    } else {
-                      toast({ title: "Email Sent!", description: "Check your inbox for the password reset link." });
-                      setShowForgotPassword(false);
-                    }
-                  }}
-                >
-                  {resetLoading ? 'Sending...' : 'Send Reset Link'}
-                </Button>
-              </div>
-            ) : (
-              <>
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
@@ -135,16 +92,7 @@ const SellerLogin: React.FC = () => {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <Label htmlFor="password">Password</Label>
-                      <button
-                        type="button"
-                        onClick={() => setShowForgotPassword(true)}
-                        className="text-xs text-primary hover:underline"
-                      >
-                        Forgot Password?
-                      </button>
-                    </div>
+                    <Label htmlFor="password">Password</Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input id="password" name="password" type={showPassword ? 'text' : 'password'} value={formData.password} onChange={handleInputChange} placeholder="••••••••" className="pl-10 pr-10" required />
@@ -167,8 +115,6 @@ const SellerLogin: React.FC = () => {
                     <Link to="/seller-signup" className="text-primary hover:underline font-medium">Register as Seller</Link>
                   </div>
                 </div>
-              </>
-            )}
           </CardContent>
         </Card>
       </main>
