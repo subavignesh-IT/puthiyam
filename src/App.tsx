@@ -20,7 +20,6 @@ import SellerDashboard from "./pages/SellerDashboard";
 import SellerLogin from "./pages/SellerLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
-import ResetPassword from "./pages/ResetPassword";
 import SellerSignup from "./pages/SellerSignup";
 
 const queryClient = new QueryClient();
@@ -49,7 +48,6 @@ const App = () => (
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/seller-login" element={<SellerLogin />} />
               <Route path="/seller-signup" element={<SellerSignup />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

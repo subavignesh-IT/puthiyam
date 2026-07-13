@@ -101,29 +101,32 @@ const SellerSignup: React.FC = () => {
         phone: formData.phone,
       }).eq('user_id', authData.user.id);
 
-      // 3. Instantly assign seller role
-      const { error: roleError } = await supabase
-        .from('user_roles')
+      // 3. Create a seller access request (pending admin approval)
+      const { error: reqError } = await supabase
+        .from('seller_requests' as any)
         .insert({
           user_id: authData.user.id,
-          role: 'seller',
+          full_name: formData.fullName,
+          email: formData.email,
+          phone: formData.phone,
         });
 
-      if (roleError) {
-        console.error('Error assigning seller role:', roleError);
-        toast({
-          title: "Account Created",
-          description: "Your seller account was created, but there was an issue assigning the seller role. Please contact support.",
-          variant: "destructive"
-        });
-        setLoading(false);
-        return;
+      if (reqError) {
+        console.error('Error creating seller request:', reqError);
       }
+
+      // 4. Notify admin via WhatsApp (opens on user's device)
+      try {
+        const msg = encodeURIComponent(
+          `New seller request on PUTHIYAM PRODUCTS\n\nName: ${formData.fullName}\nEmail: ${formData.email}\nPhone: ${formData.phone}\n\nApprove in Admin Dashboard.`
+        );
+        window.open(`https://wa.me/919361284773?text=${msg}`, '_blank');
+      } catch {}
 
       setLoading(false);
       toast({
-        title: "Seller Account Created!",
-        description: "You are now registered as a seller on PUTHIYAM. Please check your email to verify your account.",
+        title: "Request Submitted!",
+        description: "Your seller request is pending admin approval. You'll be notified once approved.",
       });
       navigate('/seller-login');
     } catch (error: any) {

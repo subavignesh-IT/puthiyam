@@ -45,6 +45,7 @@ import { Package, Plus, Trash2, Upload, ShoppingCart, Edit, Tag, Percent, Settin
 import { DbProduct, DbProductVariant, DbProductImage } from '@/types/product';
 import SalesReportDashboard from '@/components/SalesReportDashboard';
 import OrderBillImage from '@/components/OrderBillImage';
+import POSTab from '@/components/POSTab';
 import { getOrderIdForDisplay } from '@/utils/orderIdGenerator';
 import html2canvas from 'html2canvas';
 
@@ -1447,10 +1448,14 @@ const SellerDashboard: React.FC = () => {
 
         {/* Admin cross-seller dashboard moved to /admin route */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-8' : 'grid-cols-6'}`}>
+          <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-9' : 'grid-cols-7'}`}>
             <TabsTrigger value="orders" className="flex items-center gap-1 text-xs">
               <ShoppingCart className="w-4 h-4" />
               <span className="hidden sm:inline">Orders</span>
+            </TabsTrigger>
+            <TabsTrigger value="pos" className="flex items-center gap-1 text-xs">
+              <DollarSign className="w-4 h-4" />
+              <span className="hidden sm:inline">POS</span>
             </TabsTrigger>
             {isAdmin && (
               <TabsTrigger value="requests" className="flex items-center gap-1 text-xs">
@@ -1494,6 +1499,10 @@ const SellerDashboard: React.FC = () => {
           {/* Orders Tab — only this seller's own orders */}
           <TabsContent value="orders" className="space-y-4">
             {renderOrdersTable(myOrders)}
+          </TabsContent>
+
+          <TabsContent value="pos" className="space-y-4">
+            {user && <POSTab sellerId={user.id} />}
           </TabsContent>
 
           {/* Requested Products Tab */}

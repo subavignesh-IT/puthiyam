@@ -117,6 +117,7 @@ export type Database = {
           order_status: string
           payment_method: string
           payment_status: string
+          sale_channel: string
           shipping_cost: number
           subtotal: number
           total: number
@@ -135,6 +136,7 @@ export type Database = {
           order_status?: string
           payment_method: string
           payment_status: string
+          sale_channel?: string
           shipping_cost?: number
           subtotal: number
           total: number
@@ -153,6 +155,7 @@ export type Database = {
           order_status?: string
           payment_method?: string
           payment_status?: string
+          sale_channel?: string
           shipping_cost?: number
           subtotal?: number
           total?: number
@@ -360,6 +363,7 @@ export type Database = {
           phone: string | null
           theme: string | null
           updated_at: string
+          upi_id: string | null
           user_id: string
         }
         Insert: {
@@ -372,6 +376,7 @@ export type Database = {
           phone?: string | null
           theme?: string | null
           updated_at?: string
+          upi_id?: string | null
           user_id: string
         }
         Update: {
@@ -384,6 +389,7 @@ export type Database = {
           phone?: string | null
           theme?: string | null
           updated_at?: string
+          upi_id?: string | null
           user_id?: string
         }
         Relationships: []
@@ -501,6 +507,45 @@ export type Database = {
           seller_id?: string
           stamps_required?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      seller_requests: {
+        Row: {
+          admin_note: string | null
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          phone: string | null
+          shop_name: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_note?: string | null
+          created_at?: string
+          email: string
+          full_name: string
+          id?: string
+          phone?: string | null
+          shop_name?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_note?: string | null
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          phone?: string | null
+          shop_name?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }

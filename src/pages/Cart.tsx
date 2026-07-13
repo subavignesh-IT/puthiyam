@@ -1,7 +1,8 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingBag, ArrowLeft } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
+import { useAuth } from '@/hooks/useAuth';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import CartItem from '@/components/CartItem';
@@ -13,6 +14,22 @@ import { Button } from '@/components/ui/button';
 
 const Cart: React.FC = () => {
   const { items, getTotal, getItemEffectivePrice } = useCart();
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/login?returnTo=/cart', { replace: true });
+    }
+  }, [user, loading, navigate]);
+
+  if (loading || !user) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background pb-20">
