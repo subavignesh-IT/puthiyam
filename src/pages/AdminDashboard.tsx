@@ -313,6 +313,66 @@ const AdminDashboard = () => {
             </Tabs>
           </TabsContent>
 
+          <TabsContent value="requests" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <UserCheck className="w-5 h-5 text-primary" />
+                  Seller Requests ({sellerRequests.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {sellerRequests.length === 0 ? (
+                  <p className="text-center py-8 text-muted-foreground">No seller requests yet</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Phone</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Requested</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {sellerRequests.map((r) => (
+                          <TableRow key={r.id}>
+                            <TableCell className="font-medium">{r.full_name}</TableCell>
+                            <TableCell className="text-xs">{r.email}</TableCell>
+                            <TableCell className="text-xs">{r.phone || '—'}</TableCell>
+                            <TableCell>
+                              <Badge className={
+                                r.status === 'approved' ? 'bg-green-500 text-white' :
+                                r.status === 'rejected' ? 'bg-red-500 text-white' :
+                                'bg-yellow-500 text-white'
+                              }>{r.status}</Badge>
+                            </TableCell>
+                            <TableCell className="text-xs">{new Date(r.created_at).toLocaleString()}</TableCell>
+                            <TableCell>
+                              {r.status === 'pending' && (
+                                <div className="flex items-center gap-2">
+                                  <Button size="sm" onClick={() => approveSellerRequest(r)} className="h-7">
+                                    <Check className="w-3 h-3 mr-1" /> Approve
+                                  </Button>
+                                  <Button size="sm" variant="outline" onClick={() => rejectSellerRequest(r)} className="h-7">
+                                    <X className="w-3 h-3 mr-1" /> Reject
+                                  </Button>
+                                </div>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="sellers">
         <Card>
           <CardHeader>
