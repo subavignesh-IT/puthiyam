@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Store, Trash2, Package, ShoppingCart, Users, Edit } from 'lucide-react';
+import { Store, Trash2, Package, ShoppingCart, Users, Edit, UserCheck, Check, X } from 'lucide-react';
 import Header from '@/components/Header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -68,8 +68,9 @@ const AdminDashboard = () => {
   const [products, setProducts] = useState<AdminProduct[]>([]);
   const [profiles, setProfiles] = useState<{ user_id: string; full_name: string | null; phone?: string | null; created_at?: string }[]>([]);
   const [loyaltySettingsMap, setLoyaltySettingsMap] = useState<Record<string, { enabled: boolean; stamps_required: number; reward_amount: number; min_order_value: number }>>({});
-  const [topTab, setTopTab] = useState<'orders' | 'sellers' | 'products'>('orders');
+  const [topTab, setTopTab] = useState<'orders' | 'requests' | 'sellers' | 'products'>('orders');
   const [tab, setTab] = useState('all');
+  const [sellerRequests, setSellerRequests] = useState<any[]>([]);
 
   useEffect(() => {
     if (authLoading || adminLoading) return;
@@ -91,6 +92,8 @@ const AdminDashboard = () => {
       const map: Record<string, any> = {};
       ((ls as any[]) || []).forEach((s) => { map[s.seller_id] = s; });
       setLoyaltySettingsMap(map);
+      const { data: sr } = await supabase.from('seller_requests' as any).select('*').order('created_at', { ascending: false });
+      setSellerRequests((sr as any) || []);
     })();
   }, [user, isAdmin, authLoading, adminLoading, navigate]);
 
@@ -144,6 +147,30 @@ const AdminDashboard = () => {
     if (error) { toast({ title: 'Delete failed', description: error.message, variant: 'destructive' }); return; }
     setProducts((prev) => prev.filter((p) => p.id !== id));
     toast({ title: 'Product deleted' });
+  };
+
+  const approveSellerRequest = async (req: any) => {
+    // Grant seller role
+    const { error: roleErr } = await supabase.from('user_roles').insert({ user_id: req.user_id, role: 'seller' as any });
+    if (roleErr && !roleErr.message.includes('duplicate')) {
+      toast({ title: 'Role assign failed', description: roleErr.message, variant: 'destructive' });
+      return;
+    }
+    const { error } = await supabase.from('seller_requests' as any).update({ status: 'approved' }).eq('id', req.id);
+    if (error) { toast({ title: 'Update failed', description: error.message, variant: 'destructive' }); return; }
+    setSellerRequests((prev) => prev.map((r) => r.id === req.id ? { ...r, status: 'approved' } : r));
+    toast({ title: 'Seller approved' });
+    if (req.phone) {
+      const msg = encodeURIComponent(`Hi ${req.full_name}, your seller account on PUTHIYAM PRODUCTS has been approved! Login here: ${window.location.origin}/#/seller-login`);
+      window.open(`https://wa.me/${req.phone.replace(/\D/g, '')}?text=${msg}`, '_blank');
+    }
+  };
+
+  const rejectSellerRequest = async (req: any) => {
+    const { error } = await supabase.from('seller_requests' as any).update({ status: 'rejected' }).eq('id', req.id);
+    if (error) { toast({ title: 'Update failed', description: error.message, variant: 'destructive' }); return; }
+    setSellerRequests((prev) => prev.map((r) => r.id === req.id ? { ...r, status: 'rejected' } : r));
+    toast({ title: 'Request rejected' });
   };
 
   const renderTable = (list: Order[], emptyText = 'No orders yet') => (
@@ -243,11 +270,16 @@ const AdminDashboard = () => {
         </section>
 
         <Tabs value={topTab} onValueChange={(v) => setTopTab(v as any)} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="orders" className="flex items-center gap-1 text-xs">
               <ShoppingCart className="w-4 h-4" />
               <span className="hidden sm:inline">Bills</span>
               <span className="opacity-70">({orders.length})</span>
+            </TabsTrigger>
+            <TabsTrigger value="requests" className="flex items-center gap-1 text-xs">
+              <UserCheck className="w-4 h-4" />
+              <span className="hidden sm:inline">Seller Requests</span>
+              <span className="opacity-70">({sellerRequests.filter((r) => r.status === 'pending').length})</span>
             </TabsTrigger>
             <TabsTrigger value="sellers" className="flex items-center gap-1 text-xs">
               <Users className="w-4 h-4" />
