@@ -7,7 +7,7 @@
 @layer base {
   :root {
     /* Global font scale — nudge up ~6% for better readability */
-    font-size: 17px;
+    font-size: 18px;
     --background: 30 25% 97%;
     --foreground: 20 20% 15%;
 
@@ -24,7 +24,7 @@
     --secondary-foreground: 0 0% 100%;
 
     --muted: 30 15% 92%;
-    --muted-foreground: 20 10% 45%;
+    --muted-foreground: 20 15% 30%;
 
     --accent: 35 85% 55%;
     --accent-foreground: 20 20% 15%;
