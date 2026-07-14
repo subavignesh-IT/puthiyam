@@ -196,10 +196,28 @@ const CheckoutForm: React.FC = () => {
     const orderId = generatedOrderId || `${Date.now()}`;
     const text = buildShareText(orderId);
 
-    // Always download the bill image
+    // Convert PNG data URL to JPG for smaller size + WhatsApp friendliness
+    let jpgUrl = imageUrl;
+    try {
+      const img = new Image();
+      img.src = imageUrl;
+      await new Promise((res) => { img.onload = res; });
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+        jpgUrl = canvas.toDataURL('image/jpeg', 0.92);
+      }
+    } catch {}
+
+    // Always download the bill image (JPG)
     const link = document.createElement('a');
-    link.download = `PUTHIYAM_Bill_${orderId}.png`;
-    link.href = imageUrl;
+    link.download = `PUTHIYAM_Bill_${orderId}.jpg`;
+    link.href = jpgUrl;
     link.click();
 
     // Open WhatsApp chat with seller, pre-filled with order details
@@ -208,9 +226,9 @@ const CheckoutForm: React.FC = () => {
 
     // Try native share sheet too (mobile) so the image can be sent directly
     try {
-      const res = await fetch(imageUrl);
+      const res = await fetch(jpgUrl);
       const blob = await res.blob();
-      const file = new File([blob], `PUTHIYAM_Bill_${orderId}.png`, { type: 'image/png' });
+      const file = new File([blob], `PUTHIYAM_Bill_${orderId}.jpg`, { type: 'image/jpeg' });
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
         await navigator.share({
           files: [file],
