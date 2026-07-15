@@ -2464,15 +2464,17 @@ const SellerDashboard: React.FC = () => {
                           placeholder="50"
                         />
                       </div>
-                      <div className="flex-1 min-w-[100px]">
-                        <Label className="text-xs">Stock Qty</Label>
-                        <Input
-                          type="number"
-                          value={variant.stockQuantity}
-                          onChange={(e) => updateVariant(index, 'stockQuantity', parseFloat(e.target.value))}
-                          placeholder="100"
-                        />
-                      </div>
+                      {!unlimitedStock && (
+                        <div className="flex-1 min-w-[100px]">
+                          <Label className="text-xs">Stock Qty</Label>
+                          <Input
+                            type="number"
+                            value={variant.stockQuantity}
+                            onChange={(e) => updateVariant(index, 'stockQuantity', parseFloat(e.target.value))}
+                            placeholder="100"
+                          />
+                        </div>
+                      )}
                       <div className="flex items-center gap-2">
                         <input
                           type="radio"
