@@ -693,7 +693,6 @@ const POSTab: React.FC<POSTabProps> = ({ sellerId }) => {
                 </>
               )}
             </div>
-            </div>
           </div>
         </DialogContent>
       </Dialog>
