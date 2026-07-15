@@ -1176,7 +1176,7 @@ const SellerDashboard: React.FC = () => {
         quantity: v.quantity,
         price: v.price,
         is_default: v.isDefault,
-        stock_quantity: v.stockQuantity,
+        stock_quantity: unlimitedStock ? 999999 : v.stockQuantity,
         wholesale_price: null,
       }));
 
