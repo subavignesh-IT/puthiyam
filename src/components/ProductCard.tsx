@@ -44,7 +44,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
   // Calculate total stock from variants
   const totalStock = product.totalStock || 0;
-  const showLimitedStock = totalStock > 0 && totalStock <= 5;
+  const showLimitedStock = !product.unlimitedStock && totalStock > 0 && totalStock <= 5;
 
   return (
     <Card 
