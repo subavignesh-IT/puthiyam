@@ -2245,6 +2245,7 @@ const SellerDashboard: React.FC = () => {
                                 })));
                                 setDeliveryCharge(String((product as any).delivery_charge ?? 0));
                                 setFreeDeliveryQuantity(String((product as any).free_delivery_quantity ?? 0));
+                                setUnlimitedStock(Boolean((product as any).unlimited_stock));
                                 const { data: tiersData } = await supabase
                                   .from('product_wholesale_tiers')
                                   .select('min_quantity, price')
