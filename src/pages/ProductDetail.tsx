@@ -140,6 +140,7 @@ const ProductDetail: React.FC = () => {
           deliveryCharge: Number((dbProduct as any).delivery_charge) || 0,
           freeDeliveryQuantity: Number((dbProduct as any).free_delivery_quantity) || 0,
           wholesaleTiers: (tiersRes.data || []).map((t: any) => ({ minQuantity: t.min_quantity, price: Number(t.price) })),
+          unlimitedStock: Boolean((dbProduct as any).unlimited_stock),
         };
 
         setProduct(fetchedProduct);
