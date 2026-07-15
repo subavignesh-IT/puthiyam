@@ -2283,10 +2283,12 @@ const SellerDashboard: React.FC = () => {
                           </div>
 
                           <div className="text-sm text-muted-foreground">
-                            Variants: {product.variants.map(v => `${v.quantity}${product.measurement_unit} = ₹${v.price} (Stock: ${v.stock_quantity})`).join(', ')}
+                            Variants: {product.variants.map(v => `${v.quantity}${product.measurement_unit} = ₹${v.price}${(product as any).unlimited_stock ? '' : ` (Stock: ${v.stock_quantity})`}`).join(', ')}
                           </div>
                           <div className="text-sm font-medium">
-                            📦 Total Stock: {product.variants.reduce((sum, v) => sum + v.stock_quantity, 0)} units
+                            {(product as any).unlimited_stock
+                              ? '♾️ Unlimited stock'
+                              : `📦 Total Stock: ${product.variants.reduce((sum, v) => sum + v.stock_quantity, 0)} units`}
                           </div>
                         </div>
                       </div>
