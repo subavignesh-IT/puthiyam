@@ -1033,6 +1033,7 @@ const SellerDashboard: React.FC = () => {
           sale_end_time: isLimitedSale && saleEndTime ? new Date(saleEndTime).toISOString() : null,
           delivery_charge: parseFloat(deliveryCharge) || 0,
           free_delivery_quantity: parseInt(freeDeliveryQuantity) || 0,
+          unlimited_stock: unlimitedStock,
         } as any)
         .select()
         .single();
@@ -1161,6 +1162,7 @@ const SellerDashboard: React.FC = () => {
           sale_end_time: isLimitedSale && saleEndTime ? new Date(saleEndTime).toISOString() : null,
           delivery_charge: parseFloat(deliveryCharge) || 0,
           free_delivery_quantity: parseInt(freeDeliveryQuantity) || 0,
+          unlimited_stock: unlimitedStock,
         } as any)
         .eq('id', editingProduct.id);
 
