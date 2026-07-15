@@ -338,6 +338,7 @@ export type Database = {
           packing_type: string | null
           sale_end_time: string | null
           seller_id: string
+          unlimited_stock: boolean
           updated_at: string
         }
         Insert: {
@@ -358,6 +359,7 @@ export type Database = {
           packing_type?: string | null
           sale_end_time?: string | null
           seller_id: string
+          unlimited_stock?: boolean
           updated_at?: string
         }
         Update: {
@@ -378,6 +380,7 @@ export type Database = {
           packing_type?: string | null
           sale_end_time?: string | null
           seller_id?: string
+          unlimited_stock?: boolean
           updated_at?: string
         }
         Relationships: []
