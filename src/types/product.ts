@@ -28,6 +28,7 @@ export interface Product {
   deliveryCharge?: number;
   freeDeliveryQuantity?: number;
   wholesaleTiers?: WholesaleTier[];
+  unlimitedStock?: boolean;
 }
 
 export interface CartItem extends Product {

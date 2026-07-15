@@ -90,6 +90,7 @@ const POSTab: React.FC<POSTabProps> = ({ sellerId }) => {
 
   const [saving, setSaving] = useState(false);
   const [lastOrder, setLastOrder] = useState<any>(null);
+  const [step, setStep] = useState<'cart' | 'checkout'>('cart');
   const billRef = useRef<HTMLDivElement>(null);
   const qrWrapRef = useRef<HTMLDivElement>(null);
 
@@ -263,6 +264,7 @@ const POSTab: React.FC<POSTabProps> = ({ sellerId }) => {
     setCustomerAddress('');
     setManualCourier('');
     setDeliveryType('self-pickup');
+    setStep('cart');
   };
 
   const buildBillItems = () => cart.map(l => ({
@@ -478,172 +480,218 @@ const POSTab: React.FC<POSTabProps> = ({ sellerId }) => {
 
             {/* RIGHT: cart / bill */}
             <div className="flex flex-col bg-card overflow-hidden">
-              {/* Customer */}
-              <div className="p-3 border-b space-y-2">
-                <Label className="text-xs uppercase tracking-wide text-muted-foreground">Customer</Label>
-                <div className="flex gap-2">
-                  <Select value={customerId || '__walkin__'} onValueChange={pickCustomer}>
-                    <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__walkin__">Walk-in Customer</SelectItem>
-                      {savedCustomers.map(c => (
-                        <SelectItem key={c.id} value={c.id}>{c.name} — {c.phone}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button size="icon" variant="outline" onClick={() => setAddCustOpen(true)} title="Add customer">
-                    <UserPlus className="w-4 h-4" />
-                  </Button>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <Input placeholder="Name" value={customerName} onChange={e => setCustomerName(e.target.value)} className="h-9 text-sm" />
-                  <Input placeholder="Phone" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} className="h-9 text-sm" />
-                </div>
+              {/* Step indicator */}
+              <div className="px-3 py-2 border-b bg-card flex items-center gap-2 text-xs font-medium">
+                <button
+                  type="button"
+                  onClick={() => setStep('cart')}
+                  className={`flex items-center gap-1 px-2 py-1 rounded-full transition ${step === 'cart' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/70'}`}
+                >
+                  <span className="w-4 h-4 rounded-full bg-background/30 flex items-center justify-center text-[10px]">1</span>
+                  Cart
+                </button>
+                <span className="text-muted-foreground">→</span>
+                <button
+                  type="button"
+                  onClick={() => cart.length > 0 && setStep('checkout')}
+                  disabled={cart.length === 0}
+                  className={`flex items-center gap-1 px-2 py-1 rounded-full transition ${step === 'checkout' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/70'} disabled:opacity-50`}
+                >
+                  <span className="w-4 h-4 rounded-full bg-background/30 flex items-center justify-center text-[10px]">2</span>
+                  Customer & Payment
+                </button>
+                <span className="ml-auto text-muted-foreground tabular-nums">
+                  {cart.length} item{cart.length !== 1 ? 's' : ''}
+                </span>
               </div>
 
-              {/* Cart */}
-              <div className="flex-1 overflow-y-auto p-3">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs uppercase tracking-wide text-muted-foreground flex items-center gap-1">
-                    <ShoppingCart className="w-3 h-3" /> Cart ({cart.length})
-                  </span>
-                  {cart.length > 0 && (
-                    <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive" onClick={() => setCart([])}>
-                      Clear
-                    </Button>
-                  )}
-                </div>
-                {cart.length === 0 ? (
-                  <div className="text-center text-sm text-muted-foreground py-10">
-                    Tap a product on the left to add it.
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {cart.map((l, i) => (
-                      <div key={i} className="rounded-lg border p-2 bg-background">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{l.name}</p>
-                            <p className="text-[11px] text-muted-foreground">
-                              {l.variant ? `${l.variant.quantity} • ` : ''}
-                              ₹{l.effectivePrice}
-                              {l.wholesaleApplied && (
-                                <span className="ml-1 text-green-600 font-medium">(wholesale)</span>
-                              )}
-                            </p>
-                          </div>
-                          <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive shrink-0" onClick={() => removeLine(i)}>
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
-                        </div>
-                        <div className="flex items-center justify-between mt-2">
-                          <div className="flex items-center gap-1">
-                            <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateQty(i, l.quantity - 1)}>
-                              <Minus className="w-3 h-3" />
-                            </Button>
-                            <Input
-                              type="number"
-                              min={1}
-                              value={l.quantity}
-                              onChange={(e) => updateQty(i, parseInt(e.target.value) || 1)}
-                              className="h-7 w-14 text-center text-sm"
-                            />
-                            <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateQty(i, l.quantity + 1)}>
-                              <Plus className="w-3 h-3" />
-                            </Button>
-                          </div>
-                          <span className="text-sm font-bold">₹{(l.effectivePrice * l.quantity).toFixed(2)}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Delivery + payment */}
-              <div className="border-t p-3 space-y-3 bg-muted/20">
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <Label className="text-[11px] text-muted-foreground flex items-center gap-1"><Truck className="w-3 h-3" /> Delivery</Label>
-                    <Select value={deliveryType} onValueChange={(v) => setDeliveryType(v as any)}>
-                      <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="self-pickup">Self Pickup</SelectItem>
-                        <SelectItem value="shipping">Home Delivery</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label className="text-[11px] text-muted-foreground">Courier ₹ (override)</Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      placeholder={`${autoCourier}`}
-                      value={manualCourier}
-                      onChange={e => setManualCourier(e.target.value)}
-                      className="h-9 text-sm"
-                    />
-                  </div>
-                </div>
-                {deliveryType === 'shipping' && (
-                  <Input placeholder="Delivery address" value={customerAddress} onChange={e => setCustomerAddress(e.target.value)} className="h-9 text-sm" />
-                )}
-
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <Label className="text-[11px] text-muted-foreground">Payment</Label>
-                    <Select value={paymentMode} onValueChange={v => setPaymentMode(v as any)}>
-                      <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="cash">Cash</SelectItem>
-                        <SelectItem value="upi">UPI (QR)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {paymentMode === 'upi' && (
-                    <div>
-                      <Label className="text-[11px] text-muted-foreground">UPI ID</Label>
-                      <Input value={upiId} onChange={e => setUpiId(e.target.value)} placeholder="you@upi" className="h-9 text-sm" />
+              {/* STEP 1: CART */}
+              {step === 'cart' && (
+                <>
+                  <div className="flex-1 overflow-y-auto p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs uppercase tracking-wide text-muted-foreground flex items-center gap-1">
+                        <ShoppingCart className="w-3 h-3" /> Cart ({cart.length})
+                      </span>
+                      {cart.length > 0 && (
+                        <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive" onClick={() => setCart([])}>
+                          Clear
+                        </Button>
+                      )}
                     </div>
-                  )}
-                </div>
-
-                {paymentMode === 'upi' && upiId && grandTotal > 0 && (
-                  <div ref={qrWrapRef} className="flex flex-col items-center gap-2 p-3 rounded-lg border bg-background">
-                    <QrCode className="w-4 h-4 text-primary" />
-                    <img src={qrSrc} alt="UPI QR" className="w-44 h-44" />
-                    <p className="text-xs text-muted-foreground">Scan to pay ₹{grandTotal.toFixed(2)}</p>
-                    <Button variant="outline" size="sm" onClick={shareQrImage}>
-                      <Share2 className="w-3 h-3 mr-1" /> Send QR
+                    {cart.length === 0 ? (
+                      <div className="text-center text-sm text-muted-foreground py-10">
+                        Tap a product on the left to add it.
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {cart.map((l, i) => (
+                          <div key={i} className="rounded-lg border p-2 bg-background">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium truncate">{l.name}</p>
+                                <p className="text-[11px] text-muted-foreground">
+                                  {l.variant ? `${l.variant.quantity} • ` : ''}
+                                  ₹{l.effectivePrice}
+                                  {l.wholesaleApplied && (
+                                    <span className="ml-1 text-green-600 font-medium">(wholesale)</span>
+                                  )}
+                                </p>
+                              </div>
+                              <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive shrink-0" onClick={() => removeLine(i)}>
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
+                            <div className="flex items-center justify-between mt-2">
+                              <div className="flex items-center gap-1">
+                                <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateQty(i, l.quantity - 1)}>
+                                  <Minus className="w-3 h-3" />
+                                </Button>
+                                <Input
+                                  type="number"
+                                  min={1}
+                                  value={l.quantity}
+                                  onChange={(e) => updateQty(i, parseInt(e.target.value) || 1)}
+                                  className="h-7 w-14 text-center text-sm"
+                                />
+                                <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateQty(i, l.quantity + 1)}>
+                                  <Plus className="w-3 h-3" />
+                                </Button>
+                              </div>
+                              <span className="text-sm font-bold tabular-nums">₹{(l.effectivePrice * l.quantity).toFixed(2)}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="border-t p-3 space-y-2 bg-muted/20">
+                    <div className="flex justify-between text-lg font-bold">
+                      <span>Subtotal</span>
+                      <span className="text-primary tabular-nums">₹{subtotal.toFixed(2)}</span>
+                    </div>
+                    <Button
+                      className="w-full gradient-hero text-primary-foreground h-11"
+                      disabled={cart.length === 0}
+                      onClick={() => setStep('checkout')}
+                    >
+                      Next: Customer & Payment →
                     </Button>
                   </div>
-                )}
+                </>
+              )}
 
-                {/* Totals */}
-                <div className="space-y-1 text-sm border-t pt-3">
-                  <div className="flex justify-between text-muted-foreground"><span>Subtotal</span><span>₹{subtotal.toFixed(2)}</span></div>
-                  {shippingCost > 0 && (
-                    <div className="flex justify-between text-muted-foreground"><span>Courier</span><span>₹{shippingCost.toFixed(2)}</span></div>
-                  )}
-                  <div className="flex justify-between text-lg font-bold pt-1 border-t">
-                    <span>TOTAL</span><span className="text-primary">₹{grandTotal.toFixed(2)}</span>
+              {/* STEP 2: CHECKOUT */}
+              {step === 'checkout' && (
+                <>
+                  <div className="flex-1 overflow-y-auto p-3 space-y-3">
+                    {/* Customer */}
+                    <div className="space-y-2">
+                      <Label className="text-xs uppercase tracking-wide text-muted-foreground">Customer</Label>
+                      <div className="flex gap-2">
+                        <Select value={customerId || '__walkin__'} onValueChange={pickCustomer}>
+                          <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__walkin__">Walk-in Customer</SelectItem>
+                            {savedCustomers.map(c => (
+                              <SelectItem key={c.id} value={c.id}>{c.name} — {c.phone}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Button size="icon" variant="outline" onClick={() => setAddCustOpen(true)} title="Add customer">
+                          <UserPlus className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Input placeholder="Name" value={customerName} onChange={e => setCustomerName(e.target.value)} className="h-10 text-sm" />
+                        <Input placeholder="Phone" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} className="h-10 text-sm" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label className="text-[11px] text-muted-foreground flex items-center gap-1"><Truck className="w-3 h-3" /> Delivery</Label>
+                        <Select value={deliveryType} onValueChange={(v) => setDeliveryType(v as any)}>
+                          <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="self-pickup">Self Pickup</SelectItem>
+                            <SelectItem value="shipping">Home Delivery</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label className="text-[11px] text-muted-foreground">Courier ₹ (override)</Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          placeholder={`${autoCourier}`}
+                          value={manualCourier}
+                          onChange={e => setManualCourier(e.target.value)}
+                          className="h-9 text-sm"
+                        />
+                      </div>
+                    </div>
+                    {deliveryType === 'shipping' && (
+                      <Input placeholder="Delivery address" value={customerAddress} onChange={e => setCustomerAddress(e.target.value)} className="h-9 text-sm" />
+                    )}
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label className="text-[11px] text-muted-foreground">Payment</Label>
+                        <Select value={paymentMode} onValueChange={v => setPaymentMode(v as any)}>
+                          <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="cash">Cash</SelectItem>
+                            <SelectItem value="upi">UPI (QR)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {paymentMode === 'upi' && (
+                        <div>
+                          <Label className="text-[11px] text-muted-foreground">UPI ID</Label>
+                          <Input value={upiId} onChange={e => setUpiId(e.target.value)} placeholder="you@upi" className="h-9 text-sm" />
+                        </div>
+                      )}
+                    </div>
+
+                    {paymentMode === 'upi' && upiId && grandTotal > 0 && (
+                      <div ref={qrWrapRef} className="flex flex-col items-center gap-2 p-3 rounded-lg border bg-background">
+                        <QrCode className="w-4 h-4 text-primary" />
+                        <img src={qrSrc} alt="UPI QR" className="w-44 h-44" />
+                        <p className="text-xs text-muted-foreground">Scan to pay ₹{grandTotal.toFixed(2)}</p>
+                        <Button variant="outline" size="sm" onClick={shareQrImage}>
+                          <Share2 className="w-3 h-3 mr-1" /> Send QR
+                        </Button>
+                      </div>
+                    )}
                   </div>
-                </div>
 
-                <div className="grid grid-cols-2 gap-2">
-                  <Button variant="outline" onClick={resetSession} disabled={cart.length === 0}>
-                    Clear
-                  </Button>
-                  <Button
-                    className="gradient-hero text-primary-foreground"
-                    disabled={saving || cart.length === 0}
-                    onClick={saveAndShare}
-                  >
-                    <Share2 className="w-4 h-4 mr-2" />
-                    {saving ? 'Saving…' : `Save & Share ₹${grandTotal.toFixed(2)}`}
-                  </Button>
-                </div>
-              </div>
+                  <div className="border-t p-3 space-y-3 bg-muted/20">
+                    <div className="space-y-1 text-sm">
+                      <div className="flex justify-between text-muted-foreground"><span>Subtotal</span><span className="tabular-nums">₹{subtotal.toFixed(2)}</span></div>
+                      {shippingCost > 0 && (
+                        <div className="flex justify-between text-muted-foreground"><span>Courier</span><span className="tabular-nums">₹{shippingCost.toFixed(2)}</span></div>
+                      )}
+                      <div className="flex justify-between text-lg font-bold pt-1 border-t">
+                        <span>TOTAL</span><span className="text-primary tabular-nums">₹{grandTotal.toFixed(2)}</span>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button variant="outline" onClick={() => setStep('cart')} className="h-11">
+                        ← Back to Cart
+                      </Button>
+                      <Button
+                        className="gradient-hero text-primary-foreground h-11"
+                        disabled={saving || cart.length === 0}
+                        onClick={saveAndShare}
+                      >
+                        <Share2 className="w-4 h-4 mr-2" />
+                        {saving ? 'Saving…' : 'Save & Share'}
+                      </Button>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </DialogContent>

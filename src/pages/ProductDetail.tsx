@@ -140,6 +140,7 @@ const ProductDetail: React.FC = () => {
           deliveryCharge: Number((dbProduct as any).delivery_charge) || 0,
           freeDeliveryQuantity: Number((dbProduct as any).free_delivery_quantity) || 0,
           wholesaleTiers: (tiersRes.data || []).map((t: any) => ({ minQuantity: t.min_quantity, price: Number(t.price) })),
+          unlimitedStock: Boolean((dbProduct as any).unlimited_stock),
         };
 
         setProduct(fetchedProduct);
@@ -364,8 +365,8 @@ const ProductDetail: React.FC = () => {
     }
   };
 
-  // Show limited stock warning for customers
-  const showLimitedStock = !isAdmin && totalStock > 0 && totalStock <= 5;
+  // Show limited stock warning for customers (skip if seller marked as unlimited)
+  const showLimitedStock = !isAdmin && !product?.unlimitedStock && totalStock > 0 && totalStock <= 5;
 
   const renderStars = (rating: number, interactive = false, onRate?: (r: number) => void) => {
     return Array.from({ length: 5 }, (_, i) => (

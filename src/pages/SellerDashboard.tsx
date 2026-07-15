@@ -190,6 +190,7 @@ const SellerDashboard: React.FC = () => {
   const [deliveryCharge, setDeliveryCharge] = useState('0');
   const [freeDeliveryQuantity, setFreeDeliveryQuantity] = useState('0');
   const [wholesaleTiers, setWholesaleTiers] = useState<{ minQuantity: number; price: number }[]>([]);
+  const [unlimitedStock, setUnlimitedStock] = useState(false);
 
   // New category/packing type form
   const [newCategory, setNewCategory] = useState('');
@@ -1032,6 +1033,7 @@ const SellerDashboard: React.FC = () => {
           sale_end_time: isLimitedSale && saleEndTime ? new Date(saleEndTime).toISOString() : null,
           delivery_charge: parseFloat(deliveryCharge) || 0,
           free_delivery_quantity: parseInt(freeDeliveryQuantity) || 0,
+          unlimited_stock: unlimitedStock,
         } as any)
         .select()
         .single();
@@ -1044,7 +1046,7 @@ const SellerDashboard: React.FC = () => {
         quantity: v.quantity,
         price: v.price,
         is_default: v.isDefault,
-        stock_quantity: v.stockQuantity,
+        stock_quantity: unlimitedStock ? 999999 : v.stockQuantity,
         wholesale_price: null,
       }));
 
@@ -1126,6 +1128,7 @@ const SellerDashboard: React.FC = () => {
     setDeliveryCharge('0');
     setFreeDeliveryQuantity('0');
     setWholesaleTiers([]);
+    setUnlimitedStock(false);
   };
 
   const handleUpdateProduct = async () => {
@@ -1160,6 +1163,7 @@ const SellerDashboard: React.FC = () => {
           sale_end_time: isLimitedSale && saleEndTime ? new Date(saleEndTime).toISOString() : null,
           delivery_charge: parseFloat(deliveryCharge) || 0,
           free_delivery_quantity: parseInt(freeDeliveryQuantity) || 0,
+          unlimited_stock: unlimitedStock,
         } as any)
         .eq('id', editingProduct.id);
 
@@ -1173,7 +1177,7 @@ const SellerDashboard: React.FC = () => {
         quantity: v.quantity,
         price: v.price,
         is_default: v.isDefault,
-        stock_quantity: v.stockQuantity,
+        stock_quantity: unlimitedStock ? 999999 : v.stockQuantity,
         wholesale_price: null,
       }));
 
@@ -2241,6 +2245,7 @@ const SellerDashboard: React.FC = () => {
                                 })));
                                 setDeliveryCharge(String((product as any).delivery_charge ?? 0));
                                 setFreeDeliveryQuantity(String((product as any).free_delivery_quantity ?? 0));
+                                setUnlimitedStock(Boolean((product as any).unlimited_stock));
                                 const { data: tiersData } = await supabase
                                   .from('product_wholesale_tiers')
                                   .select('min_quantity, price')
@@ -2278,10 +2283,12 @@ const SellerDashboard: React.FC = () => {
                           </div>
 
                           <div className="text-sm text-muted-foreground">
-                            Variants: {product.variants.map(v => `${v.quantity}${product.measurement_unit} = ₹${v.price} (Stock: ${v.stock_quantity})`).join(', ')}
+                            Variants: {product.variants.map(v => `${v.quantity}${product.measurement_unit} = ₹${v.price}${(product as any).unlimited_stock ? '' : ` (Stock: ${v.stock_quantity})`}`).join(', ')}
                           </div>
                           <div className="text-sm font-medium">
-                            📦 Total Stock: {product.variants.reduce((sum, v) => sum + v.stock_quantity, 0)} units
+                            {(product as any).unlimited_stock
+                              ? '♾️ Unlimited stock'
+                              : `📦 Total Stock: ${product.variants.reduce((sum, v) => sum + v.stock_quantity, 0)} units`}
                           </div>
                         </div>
                       </div>
@@ -2457,15 +2464,17 @@ const SellerDashboard: React.FC = () => {
                           placeholder="50"
                         />
                       </div>
-                      <div className="flex-1 min-w-[100px]">
-                        <Label className="text-xs">Stock Qty</Label>
-                        <Input
-                          type="number"
-                          value={variant.stockQuantity}
-                          onChange={(e) => updateVariant(index, 'stockQuantity', parseFloat(e.target.value))}
-                          placeholder="100"
-                        />
-                      </div>
+                      {!unlimitedStock && (
+                        <div className="flex-1 min-w-[100px]">
+                          <Label className="text-xs">Stock Qty</Label>
+                          <Input
+                            type="number"
+                            value={variant.stockQuantity}
+                            onChange={(e) => updateVariant(index, 'stockQuantity', parseFloat(e.target.value))}
+                            placeholder="100"
+                          />
+                        </div>
+                      )}
                       <div className="flex items-center gap-2">
                         <input
                           type="radio"
@@ -2488,6 +2497,17 @@ const SellerDashboard: React.FC = () => {
                       )}
                     </div>
                   ))}
+                </div>
+
+                {/* Unlimited stock toggle */}
+                <div className="p-4 bg-muted/50 rounded-lg flex items-center justify-between gap-4">
+                  <div>
+                    <Label className="text-sm font-semibold">♾️ Unlimited Stock</Label>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Enable for products that never run out (services, made-to-order, digital). Hides stock inputs and low-stock alerts.
+                    </p>
+                  </div>
+                  <Switch checked={unlimitedStock} onCheckedChange={setUnlimitedStock} />
                 </div>
 
                 {/* Delivery Charge */}
