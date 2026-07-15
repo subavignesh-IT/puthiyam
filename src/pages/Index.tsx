@@ -114,6 +114,7 @@ const Index: React.FC = () => {
             deliveryCharge: Number((product as any).delivery_charge) || 0,
             freeDeliveryQuantity: Number((product as any).free_delivery_quantity) || 0,
             wholesaleTiers: (tiersRes.data || []).map((t: any) => ({ minQuantity: t.min_quantity, price: Number(t.price) })),
+            unlimitedStock: Boolean((product as any).unlimited_stock),
           };
         })
       );
