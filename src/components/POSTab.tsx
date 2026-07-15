@@ -264,6 +264,7 @@ const POSTab: React.FC<POSTabProps> = ({ sellerId }) => {
     setCustomerAddress('');
     setManualCourier('');
     setDeliveryType('self-pickup');
+    setStep('cart');
   };
 
   const buildBillItems = () => cart.map(l => ({
