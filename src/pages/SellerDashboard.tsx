@@ -2497,6 +2497,17 @@ const SellerDashboard: React.FC = () => {
                   ))}
                 </div>
 
+                {/* Unlimited stock toggle */}
+                <div className="p-4 bg-muted/50 rounded-lg flex items-center justify-between gap-4">
+                  <div>
+                    <Label className="text-sm font-semibold">♾️ Unlimited Stock</Label>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Enable for products that never run out (services, made-to-order, digital). Hides stock inputs and low-stock alerts.
+                    </p>
+                  </div>
+                  <Switch checked={unlimitedStock} onCheckedChange={setUnlimitedStock} />
+                </div>
+
                 {/* Delivery Charge */}
                 <div className="p-4 bg-muted/50 rounded-lg space-y-3">
                   <Label className="text-sm font-semibold">Delivery Charges</Label>
