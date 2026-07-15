@@ -90,6 +90,7 @@ const POSTab: React.FC<POSTabProps> = ({ sellerId }) => {
 
   const [saving, setSaving] = useState(false);
   const [lastOrder, setLastOrder] = useState<any>(null);
+  const [step, setStep] = useState<'cart' | 'checkout'>('cart');
   const billRef = useRef<HTMLDivElement>(null);
   const qrWrapRef = useRef<HTMLDivElement>(null);
 
